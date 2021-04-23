@@ -33,6 +33,7 @@ type FrontendMsg
     | RequestUrlChanged String
     | RequestBodyChanged String
     | RequestExecClicked
+    | ResetDecoder
     | JsonAddField (List String) String JsonValue
     | JsonAddAll (List String) JsonValue
     | NoOpFrontendMsg

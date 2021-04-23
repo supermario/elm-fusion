@@ -8,11 +8,13 @@ import Element.Font as Font
 import Element.Input as Input
 import Fusion.Json
 import Fusion.Types exposing (..)
+import Fusion.View
 import Http
 import Json.Decode as D
 import List.Extra as List
 import Task exposing (Task)
 import Types exposing (..)
+import View.Helpers exposing (..)
 
 
 type alias Model =
@@ -36,7 +38,7 @@ emptyRequest =
 toHttpRequest : (Result Http.Error String -> BackendMsg) -> Fusion.Types.Request -> Cmd BackendMsg
 toHttpRequest msg req =
     Http.request
-        { method = "POST" -- @TODO fix conversion
+        { method = toHttpMethod req.method
         , headers = req.headers
         , url = req.url
         , body = toHttpBody req.body
@@ -67,6 +69,15 @@ toHttpBody body =
             Debug.todo "MultiPart toHttpBody"
 
 
+toHttpMethod method =
+    case method of
+        GET ->
+            "GET"
+
+        POST ->
+            "POST"
+
+
 newRaw : String -> Model -> Model
 newRaw string model =
     { model | rawString = string }
@@ -87,13 +98,20 @@ guessElmTypeForJsonValue jv =
             TBool
 
         JNull ->
-            TUnimplemented
+            TMaybe (TParam "unknown")
 
         JList jvs ->
-            TUnimplemented
+            case jvs of
+                v :: _ ->
+                    TList <| guessElmTypeForJsonValue v
+
+                [] ->
+                    TList (TParam "unknown")
 
         JObject fields ->
-            TUnimplemented
+            fields
+                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ ))
+                |> TRecord "Unknown" []
 
 
 fusionAddField fieldName jv decoder =
@@ -149,11 +167,17 @@ view model =
             text "Exec"
         , paragraph [] [ text <| Debug.toString model.currentRequest ]
         , paragraph [] [ text <| Debug.toString model.fusionDecoder ]
+        , paragraph [] [ text <| model.rawString ]
         , case D.decodeString decodeJsonAst model.rawString of
             Ok ast ->
                 row [ width fill, spacing 20 ]
-                    [ column [ width fill, Font.family [ Font.monospace ] ] [ viewAst [] ast ]
-                    , column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewFusionDecoder model ]
+                    [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
+                    , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                        [ button [] ResetDecoder "Reset"
+                        , viewFusionDecoder model
+                        , viewFusionJsonInferredTypeString ast
+                        , viewFusionJsonInferredTypeRich ast
+                        ]
                     ]
 
             Err err ->
@@ -252,15 +276,7 @@ viewAst parents ast =
 
         JObject fields ->
             column [ spacing 10 ]
-                [ el
-                    [ onClick <| JsonAddAll parents ast
-                    , Background.color blue
-                    , pointer
-                    , padding 5
-                    , alignTop
-                    ]
-                  <|
-                    text "Add all"
+                [ button [] (JsonAddAll parents ast) "Add all"
                 , fields
                     |> List.map
                         (\( field, jv ) ->
@@ -288,3 +304,11 @@ decodeJsonAst =
         , D.list (D.lazy (\_ -> decodeJsonAst)) |> D.map JList
         , D.keyValuePairs (D.lazy (\_ -> decodeJsonAst)) |> D.map JObject
         ]
+
+
+viewFusionJsonInferredTypeRich ast =
+    Fusion.View.viewType <| guessElmTypeForJsonValue ast
+
+
+viewFusionJsonInferredTypeString ast =
+    text <| Fusion.View.typeString 0 <| guessElmTypeForJsonValue ast

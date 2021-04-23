@@ -13,6 +13,9 @@ type
     | TList TType
     | TCustom Name TParams (List ( Name, List TType ))
     | TRecord Name TParams (List ( Name, TType ))
+    | TParam Name
+      -- Non-language but core types
+    | TMaybe TType
       -- Helpers
     | TRecursive Name
       --

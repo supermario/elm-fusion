@@ -84,6 +84,9 @@ update msg model =
         RequestExecClicked ->
             ( model, sendToBackend (RequestExecClicked_ model.currentRequest) )
 
+        ResetDecoder ->
+            ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
+
         JsonAddField parents f jv ->
             ( { model | fusionDecoder = fusionAddField f jv model.fusionDecoder }, Cmd.none )
 

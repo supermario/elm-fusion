@@ -30,6 +30,12 @@ decoderFromTType ttype =
             )
                 |> String.join "\n"
 
+        TParam name ->
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+
+        TMaybe ttype_ ->
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+
         -- |> List.intersperse "\n"
         -- "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
         TRecursive name ->

@@ -17,6 +17,7 @@
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.2.4",
             "krisajenkins/remotedata": "6.0.1",
+            "lamdera/codecs": "1.0.0",
             "lamdera/core": "1.0.0",
             "mdgriffith/elm-ui": "1.1.8",
             "noahzgordon/elm-color-extra": "1.0.2",
@@ -30,7 +31,6 @@
             "elm/virtual-dom": "1.0.2",
             "folkertdev/elm-sha2": "1.0.0",
             "fredcy/elm-parseint": "2.0.1",
-            "lamdera/codecs": "1.0.0",
             "rtfeldman/elm-hex": "1.0.0"
         }
     },
