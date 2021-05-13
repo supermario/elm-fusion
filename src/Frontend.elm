@@ -63,6 +63,16 @@ update msg model =
         UrlChanged url ->
             Page.urlChanged model url onPageInit
 
+        RequestHttpMethodChanged method ->
+            let
+                currentRequest =
+                    model.currentRequest
+
+                newReq =
+                    { currentRequest | method = method }
+            in
+            ( { model | currentRequest = newReq }, Cmd.none )
+
         RequestUrlChanged s ->
             ( model
                 |> updateCurrentRequest

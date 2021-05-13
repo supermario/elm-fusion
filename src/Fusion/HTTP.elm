@@ -27,9 +27,9 @@ type alias Msg =
 
 emptyRequest : Request
 emptyRequest =
-    { method = POST
+    { method = GET
     , headers = []
-    , url = ""
+    , url = "https://jsonplaceholder.typicode.com/posts/1"
     , body = StringBody "application/x-www-form-urlencoded" ""
     , timeout = Nothing
     }
@@ -143,7 +143,11 @@ fusionAddField fieldName jv decoder =
 view : Model -> Element Msg
 view model =
     column [ width fill, spacing 10 ]
-        [ Input.text []
+        [ row [ spacing 5 ]
+            [ button [] (RequestHttpMethodChanged GET) "GET"
+            , button [] (RequestHttpMethodChanged POST) "POST"
+            ]
+        , Input.text []
             { onChange = RequestUrlChanged
             , text = model.currentRequest.url
             , placeholder =

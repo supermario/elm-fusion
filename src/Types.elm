@@ -30,6 +30,7 @@ type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
       -- Fusion
+    | RequestHttpMethodChanged RequestMethod
     | RequestUrlChanged String
     | RequestBodyChanged String
     | RequestExecClicked
