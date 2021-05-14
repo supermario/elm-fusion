@@ -10,6 +10,7 @@ import Element.Font as Font
 import Env
 import Fusion.HTTP exposing (..)
 import Fusion.Types exposing (..)
+import Helpers exposing (..)
 import Html
 import Http
 import Json.Decode as Json
@@ -47,6 +48,7 @@ init url key =
     ( { key = key
       , page = Page.pathToPage url
       , rawString = ""
+      , rawHeaders = ""
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
       }
@@ -82,6 +84,29 @@ update msg model =
             , Cmd.none
             )
 
+        RequestHeadersChanged s ->
+            ( { model | rawHeaders = s }
+                |> updateCurrentRequest
+                    (\req ->
+                        { req
+                            | headers =
+                                s
+                                    |> String.split "\n"
+                                    |> List.map
+                                        (\s_ ->
+                                            case String.split ":" s_ of
+                                                n :: v :: _ ->
+                                                    Just (Http.header (String.trim n) (String.trim v))
+
+                                                _ ->
+                                                    Nothing
+                                        )
+                                    |> justs
+                        }
+                    )
+            , Cmd.none
+            )
+
         RequestBodyChanged s ->
             ( model
                 |> updateCurrentRequest
@@ -92,7 +117,7 @@ update msg model =
             )
 
         RequestExecClicked ->
-            ( model, sendToBackend (RequestExecClicked_ model.currentRequest) )
+            ( { model | rawString = "" }, sendToBackend (RequestExecClicked_ model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
@@ -154,28 +179,30 @@ view model =
         [ staticCss
         , viewElmUi <|
             column [ width fill, height fill ]
-                [ none
-                , nav
-                , case model.page of
-                    FusionHttp ->
-                        Fusion.HTTP.view model
+                [ nav
+                , column [ width fill, height fill, padding 20 ]
+                    [ case model.page of
+                        FusionHttp ->
+                            Fusion.HTTP.view model
+                    ]
                 ]
         ]
     }
 
 
 viewElmUi children =
-    layout [ Font.family [ Font.typeface "Roboto" ], Font.size 14, width fill, height fill, padding 20 ] <| children
+    layout [ Font.family [ Font.typeface "Roboto" ], Font.size 14, width fill, height fill ] <| children
 
 
 nav =
-    row [ spacing 10, alignRight, paddingXY 0 20 ]
-        [ linkTo FusionHttp
+    row [ spacing 10, paddingXY 20 10, Background.color blue, width fill, Font.color white ]
+        [ text "elm-http-fusion"
         ]
 
 
 linkTo page =
-    link [ Font.underline, mouseOver [ Font.color blue ] ] { url = Page.pageToPath page, label = text <| Page.pageName page }
+    link [ Font.underline, mouseOver [ Font.color blue ] ]
+        { url = Page.pageToPath page, label = text <| Page.pageName page }
 
 
 staticCss =

@@ -42,7 +42,7 @@ title page =
 pageName page =
     case page of
         FusionHttp ->
-            "Fuse"
+            "Fusion"
 
 
 urlClicked model urlRequest =

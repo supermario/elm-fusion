@@ -10,7 +10,7 @@ import Element.Font as Font
 
 button attrs msg label =
     el
-        ([ Background.color blue
+        ([ Background.color grey
          , padding 10
          , onClick msg
          , pointer
@@ -20,6 +20,18 @@ button attrs msg label =
         (text
             label
         )
+
+
+buttonHilightOn cond attrs msg t =
+    let
+        hilight =
+            Background.color blue
+    in
+    if cond then
+        button (attrs ++ [ hilight ]) msg t
+
+    else
+        button (attrs ++ []) msg t
 
 
 viewLabel label =

@@ -21,6 +21,7 @@ type alias FrontendModel =
 
     -- Fusion
     , rawString : String
+    , rawHeaders : String
     , fusionDecoder : FusionDecoder
     , currentRequest : Request
     }
@@ -32,6 +33,7 @@ type FrontendMsg
       -- Fusion
     | RequestHttpMethodChanged RequestMethod
     | RequestUrlChanged String
+    | RequestHeadersChanged String
     | RequestBodyChanged String
     | RequestExecClicked
     | ResetDecoder

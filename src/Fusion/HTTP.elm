@@ -144,17 +144,24 @@ view : Model -> Element Msg
 view model =
     column [ width fill, spacing 10 ]
         [ row [ spacing 5 ]
-            [ button [] (RequestHttpMethodChanged GET) "GET"
-            , button [] (RequestHttpMethodChanged POST) "POST"
+            [ buttonHilightOn (model.currentRequest.method == GET) [] (RequestHttpMethodChanged GET) "GET"
+            , buttonHilightOn (model.currentRequest.method == POST) [] (RequestHttpMethodChanged POST) "POST"
             ]
-        , Input.text []
+        , Input.text [ padding 5 ]
             { onChange = RequestUrlChanged
             , text = model.currentRequest.url
             , placeholder =
                 Just (Input.placeholder [] <| text "type your URL here")
             , label = Input.labelHidden "request url input"
             }
-        , Input.multiline []
+        , Input.multiline [ padding 5 ]
+            { onChange = RequestHeadersChanged
+            , text = model.rawHeaders
+            , placeholder = Just (Input.placeholder [] <| text "request headers input")
+            , label = Input.labelHidden "request headers input"
+            , spellcheck = False
+            }
+        , Input.multiline [ padding 5 ]
             { onChange = RequestBodyChanged
             , text = requestBodyString model.currentRequest
             , placeholder = Just (Input.placeholder [] <| text "type your request body")

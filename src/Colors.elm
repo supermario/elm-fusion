@@ -45,6 +45,10 @@ darkGrey =
     fromHex "#aaa"
 
 
+white =
+    fromHex "#fff"
+
+
 fromHex : String -> Color
 fromHex str =
     case hexToColor str of
