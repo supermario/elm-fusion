@@ -201,6 +201,7 @@ viewElmUi children =
 nav =
     row [ spacing 10, paddingXY 20 10, Background.color blue, width fill, Font.color white ]
         [ text "elm-http-fusion"
+        , el [ alignRight ] <| newTabLink [ Font.underline ] { url = "https://github.com/supermario/elm-http-fusion", label = text "Github" }
         ]
 
 
