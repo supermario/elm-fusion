@@ -1,6 +1,7 @@
 module Fusion.Json exposing (..)
 
 import Fusion.Types exposing (..)
+import Helpers exposing (..)
 
 
 decoderFromTType ttype =
@@ -21,7 +22,7 @@ decoderFromTType ttype =
             "D.list (" ++ decoderFromTType ttype_ ++ ")"
 
         TCustom name tParams params ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""
 
         TRecord name tParams fields ->
             ([ "D.succeed " ++ name
@@ -31,15 +32,15 @@ decoderFromTType ttype =
                 |> String.join "\n"
 
         TParam name ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""
 
         TMaybe ttype_ ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""
 
         -- |> List.intersperse "\n"
-        -- "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+        -- "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""
         TRecursive name ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""
 
         TUnimplemented ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ Debug.toString ttype ++ "\""
+            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString ttype ++ "\""

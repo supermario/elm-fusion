@@ -5,6 +5,25 @@ import Json.Decode as D
 import Regex
 
 
+log l v =
+    -- Debug.log l v
+    v
+
+
+todo l v =
+    -- Debug.todo l
+    let
+        _ =
+            log ("Unimplemented: " ++ l) v
+    in
+    v
+
+
+toString v =
+    -- Debug.toString v
+    "<toString neutered>"
+
+
 justs =
     List.foldl
         (\v acc ->

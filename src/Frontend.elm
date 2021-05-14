@@ -137,7 +137,11 @@ update msg model =
                         |> (\m -> ( m, Cmd.none ))
 
                 _ ->
-                    Debug.todo <| "todo JsonAddAll" ++ Debug.toString ( parents, jv )
+                    let
+                        _ =
+                            todo <| "todo JsonAddAll" ++ toString ( parents, jv )
+                    in
+                    ( model, Cmd.none )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
@@ -159,7 +163,7 @@ updateFromBackend msg model =
                 Err err ->
                     let
                         x =
-                            Debug.log "error:" err
+                            log "error:" err
                     in
                     ( model, Cmd.none )
 

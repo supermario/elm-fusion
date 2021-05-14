@@ -9,6 +9,7 @@ import Element.Input as Input
 import Fusion.Json
 import Fusion.Types exposing (..)
 import Fusion.View
+import Helpers exposing (..)
 import Http
 import Json.Decode as D
 import List.Extra as List
@@ -57,16 +58,16 @@ toHttpBody body =
             Http.stringBody mime string
 
         Json ->
-            Debug.todo "Json toHttpBody"
+            todo "Json toHttpBody" Http.emptyBody
 
         File ->
-            Debug.todo "File toHttpBody"
+            todo "File toHttpBody" Http.emptyBody
 
         Bytes ->
-            Debug.todo "Bytes toHttpBody"
+            todo "Bytes toHttpBody" Http.emptyBody
 
         MultiPart parts ->
-            Debug.todo "MultiPart toHttpBody"
+            todo "MultiPart toHttpBody" Http.emptyBody
 
 
 toHttpMethod method =
@@ -176,8 +177,8 @@ view model =
             ]
           <|
             text "Exec"
-        , paragraph [] [ text <| Debug.toString model.currentRequest ]
-        , paragraph [] [ text <| Debug.toString model.fusionDecoder ]
+        , paragraph [] [ text <| toString model.currentRequest ]
+        , paragraph [] [ text <| toString model.fusionDecoder ]
         , paragraph [] [ text <| model.rawString ]
         , case D.decodeString decodeJsonAst model.rawString of
             Ok ast ->
