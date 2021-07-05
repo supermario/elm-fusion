@@ -13,7 +13,7 @@ It is majorly WIP and not ready for sharing.
 Fusion is built entirely with Elm on [Lamdera](https://lamdera.com) and can be run locally:
 
 ```
-git@github.com:supermario/elm-http-fusion.git
+git clone git@github.com:supermario/elm-http-fusion.git
 cd elm-http-fusion
 lamdera live
 ```
