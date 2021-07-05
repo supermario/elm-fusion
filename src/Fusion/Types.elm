@@ -76,3 +76,11 @@ type JsonValue
     | JNull
     | JList (List JsonValue)
     | JObject (List ( String, JsonValue ))
+
+
+type HttpError
+    = BadUrl String
+    | Timeout
+    | NetworkError
+    | BadStatus Int String
+    | BadBody String

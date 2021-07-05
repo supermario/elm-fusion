@@ -8,6 +8,7 @@ import Html
 import Http
 import Json.Decode as Decode
 import Lamdera exposing (..)
+import RemoteData
 import Task
 import Types exposing (..)
 
@@ -28,6 +29,7 @@ app =
 init : ( Model, Cmd BackendMsg )
 init =
     ( { httpCache = Dict.empty
+      , httpRequest = RemoteData.NotAsked
       }
     , Cmd.none
     )
@@ -42,7 +44,9 @@ update msg model =
             )
 
         RequestExecResult clientId res ->
-            ( model, sendToFrontend clientId (RequestExecResult_ res) )
+            ( { model | httpRequest = RemoteData.fromResult res }
+            , sendToFrontend clientId (RequestExecResult_ res)
+            )
 
         NoOpBackendMsg ->
             ( model, Cmd.none )
@@ -52,8 +56,8 @@ updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd
 updateFromFrontend sessionId clientId msg model =
     case msg of
         RequestExecClicked_ request ->
-            ( model
-            , Fusion.HTTP.toHttpRequest (RequestExecResult clientId) request
+            ( { model | httpRequest = RemoteData.Loading }
+            , request |> Fusion.HTTP.toHttpRequestTask |> Task.attempt (RequestExecResult clientId)
             )
 
         NoOpToBackend ->

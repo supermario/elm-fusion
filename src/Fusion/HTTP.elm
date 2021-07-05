@@ -10,9 +10,10 @@ import Fusion.Json
 import Fusion.Types exposing (..)
 import Fusion.View
 import Helpers exposing (..)
-import Http
+import Http exposing (..)
 import Json.Decode as D
 import List.Extra as List
+import RemoteData exposing (..)
 import Task exposing (Task)
 import Types exposing (..)
 import View.Helpers exposing (..)
@@ -36,16 +37,29 @@ emptyRequest =
     }
 
 
-toHttpRequest : (Result Http.Error String -> BackendMsg) -> Fusion.Types.Request -> Cmd BackendMsg
-toHttpRequest msg req =
-    Http.request
+
+-- toHttpRequest : (Result Http.Error String -> BackendMsg) -> Fusion.Types.Request -> Cmd BackendMsg
+-- toHttpRequest msg req =
+--     Http.request
+--         { method = toHttpMethod req.method
+--         , headers = req.headers
+--         , url = req.url
+--         , body = toHttpBody req.body
+--         , expect = Http.expectString msg
+--         , timeout = Nothing
+--         , tracker = Nothing
+--         }
+
+
+toHttpRequestTask : Fusion.Types.Request -> Task HttpError String
+toHttpRequestTask req =
+    Http.task
         { method = toHttpMethod req.method
         , headers = req.headers
         , url = req.url
         , body = toHttpBody req.body
-        , expect = Http.expectString msg
+        , resolver = stringResolver_
         , timeout = Nothing
-        , tracker = Nothing
         }
 
 
@@ -152,20 +166,20 @@ view model =
             { onChange = RequestUrlChanged
             , text = model.currentRequest.url
             , placeholder =
-                Just (Input.placeholder [] <| text "type your URL here")
+                Just (Input.placeholder [] <| text "the HTTP URL")
             , label = Input.labelHidden "request url input"
             }
         , Input.multiline [ padding 5 ]
             { onChange = RequestHeadersChanged
             , text = model.rawHeaders
-            , placeholder = Just (Input.placeholder [] <| text "request headers input")
+            , placeholder = Just (Input.placeholder [] <| text "request headers, one per line")
             , label = Input.labelHidden "request headers input"
             , spellcheck = False
             }
         , Input.multiline [ padding 5 ]
             { onChange = RequestBodyChanged
             , text = requestBodyString model.currentRequest
-            , placeholder = Just (Input.placeholder [] <| text "type your request body")
+            , placeholder = Just (Input.placeholder [] <| text "request body")
             , label = Input.labelHidden "request body input"
             , spellcheck = False
             }
@@ -177,23 +191,43 @@ view model =
             ]
           <|
             text "Exec"
-        , paragraph [] [ text <| toString model.currentRequest ]
+        , paragraph []
+            [ case model.httpRequest of
+                NotAsked ->
+                    text "No HTTP requests yet."
+
+                Loading ->
+                    text "Loading..."
+
+                Failure err ->
+                    text <| "Error: " ++ httpErrorToString err
+
+                Success v ->
+                    text "HTTP succeeded."
+            ]
+
+        -- , paragraph [] [ text <| toString model.currentRequest ]
         , paragraph [] [ text <| toString model.fusionDecoder ]
         , paragraph [] [ text <| model.rawString ]
-        , case D.decodeString decodeJsonAst model.rawString of
-            Ok ast ->
-                row [ width fill, spacing 20 ]
-                    [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
-                    , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                        [ button [] ResetDecoder "Reset"
-                        , viewFusionDecoder model
-                        , viewFusionJsonInferredTypeString ast
-                        , viewFusionJsonInferredTypeRich ast
-                        ]
-                    ]
+        , case model.httpRequest of
+            Success string ->
+                case D.decodeString decodeJsonAst model.rawString of
+                    Ok ast ->
+                        row [ width fill, spacing 20 ]
+                            [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
+                            , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                                [ button [] ResetDecoder "Reset"
+                                , viewFusionDecoder model
+                                , viewFusionJsonInferredTypeString ast
+                                , viewFusionJsonInferredTypeRich ast
+                                ]
+                            ]
 
-            Err err ->
-                text <| D.errorToString err
+                    Err err ->
+                        text <| D.errorToString err
+
+            _ ->
+                none
         ]
 
 
@@ -324,3 +358,43 @@ viewFusionJsonInferredTypeRich ast =
 
 viewFusionJsonInferredTypeString ast =
     text <| Fusion.View.typeString 0 <| guessElmTypeForJsonValue ast
+
+
+httpErrorToString : HttpError -> String
+httpErrorToString err =
+    case err of
+        Fusion.Types.BadUrl url ->
+            "HTTP Malformed url: " ++ url
+
+        Fusion.Types.Timeout ->
+            "HTTP Timeout exceeded"
+
+        Fusion.Types.NetworkError ->
+            "HTTP Network error"
+
+        Fusion.Types.BadStatus code body ->
+            "HTTP " ++ String.fromInt code ++ ": " ++ body
+
+        Fusion.Types.BadBody text ->
+            "Unexpected HTTP response: " ++ text
+
+
+stringResolver_ : Http.Resolver HttpError String
+stringResolver_ =
+    Http.stringResolver <|
+        \response ->
+            case response of
+                Http.GoodStatus_ metadata body ->
+                    Ok body
+
+                Http.BadUrl_ message ->
+                    Err (Fusion.Types.BadUrl message)
+
+                Http.Timeout_ ->
+                    Err Fusion.Types.Timeout
+
+                Http.NetworkError_ ->
+                    Err Fusion.Types.NetworkError
+
+                Http.BadStatus_ metadata body ->
+                    Err (Fusion.Types.BadStatus metadata.statusCode body)

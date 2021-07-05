@@ -51,6 +51,7 @@ init url key =
       , rawHeaders = ""
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
+      , httpRequest = NotAsked
       }
     , Cmd.none
     )
@@ -117,7 +118,7 @@ update msg model =
             )
 
         RequestExecClicked ->
-            ( { model | rawString = "" }, sendToBackend (RequestExecClicked_ model.currentRequest) )
+            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (RequestExecClicked_ model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
@@ -156,7 +157,7 @@ updateFromBackend msg model =
         RequestExecResult_ res ->
             case res of
                 Ok string ->
-                    ( { model | rawString = string }
+                    ( { model | rawString = string, httpRequest = RemoteData.fromResult res }
                     , Cmd.none
                     )
 
@@ -165,7 +166,7 @@ updateFromBackend msg model =
                         x =
                             log "error:" err
                     in
-                    ( model, Cmd.none )
+                    ( { model | httpRequest = RemoteData.fromResult res }, Cmd.none )
 
         NoOpToFrontend ->
             ( model, Cmd.none )

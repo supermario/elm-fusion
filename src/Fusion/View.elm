@@ -182,14 +182,27 @@ typeRich stub =
                                     ]
                             )
             in
-            column []
-                ([ row [ spacing 5, padding 5 ]
-                    [ el [ Font.color purple ] <| text "type alias"
-                    , el [ Font.color orange ] (text <| name) --++ " custom")
-                    ]
-                 ]
-                    ++ viewFields
-                )
+            case name of
+                "Unknown" ->
+                    column []
+                        ([ row [ spacing 5, padding 5 ]
+                            [ el [ Font.color purple ] <| text "{"
+                            ]
+                         ]
+                            ++ viewFields
+                            ++ [ row [ spacing 5, padding 5 ] [ el [ Font.color purple ] <| text "}" ]
+                               ]
+                        )
+
+                _ ->
+                    column []
+                        ([ row [ spacing 5, padding 5 ]
+                            [ el [ Font.color purple ] <| text "type alias"
+                            , el [ Font.color orange ] (text <| name) --++ " custom")
+                            ]
+                         ]
+                            ++ viewFields
+                        )
 
         TParam name ->
             el [ Font.color red ] <| text name

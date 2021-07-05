@@ -5,7 +5,7 @@ import Fusion.Types exposing (..)
 import Http
 import Json.Decode as Json
 import Lamdera exposing (..)
-import RemoteData exposing (WebData)
+import RemoteData exposing (RemoteData)
 import Task exposing (Task)
 import Time
 import Url exposing (Url)
@@ -24,6 +24,7 @@ type alias FrontendModel =
     , rawHeaders : String
     , fusionDecoder : FusionDecoder
     , currentRequest : Request
+    , httpRequest : RemoteData HttpError String
     }
 
 
@@ -49,16 +50,17 @@ type ToBackend
 
 type alias BackendModel =
     { httpCache : Dict String String
+    , httpRequest : RemoteData HttpError String
     }
 
 
 type BackendMsg
     = ClientConnected SessionId ClientId
-    | RequestExecResult ClientId (Result Http.Error String)
+    | RequestExecResult ClientId (Result HttpError String)
     | NoOpBackendMsg
 
 
 type ToFrontend
     = FusionHttpTarget String
-    | RequestExecResult_ (Result Http.Error String)
+    | RequestExecResult_ (Result HttpError String)
     | NoOpToFrontend
