@@ -1,0 +1,3 @@
+[submodule "elm-cli-options-parser"]
+	path = elm-cli-options-parser
+	url = git@github.com:dillonkearns/elm-cli-options-parser.git
