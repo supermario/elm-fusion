@@ -38,9 +38,9 @@ bodyGenerator request =
             """DataSource.Http.emptyBody"""
 
         Request.StringBody contentType body ->
-            "DataSource.Http.stringBody \""
-                ++ contentType
-                ++ "\" "
+            "DataSource.Http.stringBody "
+                ++ escapedAndQuoted contentType
+                ++ " "
                 ++ escapedAndQuoted body
 
 
