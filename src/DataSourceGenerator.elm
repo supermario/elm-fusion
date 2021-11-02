@@ -23,7 +23,27 @@ data =
            )
         ++ """
                 ]
-            , body = DataSource.Http.emptyBody
+            , body = """
+        ++ bodyGenerator request
+        ++ """
             }
         )
 """
+
+
+bodyGenerator : Request -> String
+bodyGenerator request =
+    case request.body of
+        Request.Empty ->
+            """DataSource.Http.emptyBody"""
+
+        Request.StringBody contentType body ->
+            "DataSource.Http.stringBody \""
+                ++ contentType
+                ++ "\" "
+                ++ escapedAndQuoted body
+
+
+escapedAndQuoted : String -> String
+escapedAndQuoted string =
+    "\"" ++ (string |> String.replace "\"" "\\\"") ++ "\""
