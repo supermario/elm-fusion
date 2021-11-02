@@ -4,6 +4,7 @@
         "./src/Backend.elm"
     ],
     "tools": {
+        "elm-format": "0.8.5",
         "elm-test-rs": "1.2.2"
     }
 }
