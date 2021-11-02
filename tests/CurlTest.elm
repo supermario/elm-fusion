@@ -117,4 +117,16 @@ suite =
                             ]
                         , body = Fusion.Types.Empty
                         }
+        , test "JSON body" <|
+            \() ->
+                """'http://fiddle.jshell.net/echo/html/' -H 'Content-Type: application/json' --data '{"json": "data"}'"""
+                    |> runCurl
+                    |> expectRequest
+                        { url = "http://fiddle.jshell.net/echo/html/"
+                        , method = Fusion.Types.POST
+                        , headers =
+                            [ ( "Content-Type", "application/json" )
+                            ]
+                        , body = Fusion.Types.StringBody "application/json" """{"json": "data"}"""
+                        }
         ]
