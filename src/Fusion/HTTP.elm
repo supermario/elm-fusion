@@ -162,12 +162,13 @@ view model =
             [ buttonHilightOn (model.currentRequest.method == GET) [] (RequestHttpMethodChanged GET) "GET"
             , buttonHilightOn (model.currentRequest.method == POST) [] (RequestHttpMethodChanged POST) "POST"
             ]
-        , Input.text [ padding 5 ]
+        , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
             , text = model.currentRequest.url
             , placeholder =
                 Just (Input.placeholder [] <| text "the HTTP URL")
             , label = Input.labelHidden "request url input"
+            , spellcheck = False
             }
         , Input.multiline [ padding 5 ]
             { onChange = RequestHeadersChanged
@@ -233,7 +234,9 @@ view model =
 
 updateCurrentRequest : (Request -> Request) -> Model -> Model
 updateCurrentRequest fn model =
-    { model | currentRequest = fn model.currentRequest }
+    { model
+        | currentRequest = fn model.currentRequest
+    }
 
 
 updateRequestBodyString : String -> Request -> Request

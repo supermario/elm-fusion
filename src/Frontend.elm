@@ -2,8 +2,10 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..), application)
 import Browser.Navigation as Navigation
+import Cli.OptionsParser.MatchResult exposing (MatchResult)
 import Colors exposing (..)
-import Dict
+import Curl
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -77,11 +79,44 @@ update msg model =
             ( { model | currentRequest = newReq }, Cmd.none )
 
         RequestUrlChanged s ->
-            ( model
-                |> updateCurrentRequest
-                    (\req ->
-                        { req | url = s }
-                    )
+            let
+                requestThing : Maybe ( List ( String, String ), Request )
+                requestThing =
+                    if s |> String.startsWith "curl " then
+                        let
+                            requestFromCurl : MatchResult ( List ( String, String ), Request )
+                            requestFromCurl =
+                                String.dropLeft 4 s
+                                    |> Curl.runCurl
+                        in
+                        case requestFromCurl of
+                            Cli.OptionsParser.MatchResult.Match match ->
+                                case match of
+                                    Ok okMatch ->
+                                        Just okMatch
+
+                                    Err matchError ->
+                                        Nothing
+
+                            Cli.OptionsParser.MatchResult.NoMatch strings ->
+                                Nothing
+
+                    else
+                        Nothing
+            in
+            ( case requestThing of
+                Just ( headers, parsedCurlRequest ) ->
+                    { model
+                        | currentRequest = parsedCurlRequest
+                        , rawHeaders = headers |> List.map (\( key, value ) -> key ++ ": " ++ value) |> String.join "\n"
+                    }
+
+                Nothing ->
+                    model
+                        |> updateCurrentRequest
+                            (\req ->
+                                { req | url = s }
+                            )
             , Cmd.none
             )
 
