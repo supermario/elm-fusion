@@ -1,45 +1,35 @@
 module CurlTest exposing (..)
 
-import Cli.LowLevel
-import Cli.Option as Option
-import Cli.OptionsParser as OptionsParser
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Curl exposing (runCurl)
 import Dict
 import Expect exposing (Expectation)
-import Fusion.Types
-import Http
-import Regex exposing (Regex)
+import Request exposing (Request)
 import Test exposing (..)
 
 
 expectRequest :
     { headers : List ( String, String )
-    , method : Fusion.Types.RequestMethod
+    , method : Request.Method
     , url : String
-    , body : Fusion.Types.RequestBody
+    , body : Request.Body
     }
-    -> MatchResult ( List ( String, String ), { url : String, method : Fusion.Types.RequestMethod, headers : List Http.Header, timeout : Maybe b, body : Fusion.Types.RequestBody } )
+    -> MatchResult Request
     -> Expectation
 expectRequest expected actual =
     actual
         |> Expect.equal
             (Match
                 (Ok
-                    ( expected.headers
-                        |> Dict.fromList
-                        |> Dict.toList
-                    , { url = expected.url
-                      , method = expected.method
-                      , headers =
-                            expected.headers
-                                |> Dict.fromList
-                                |> Dict.toList
-                                |> List.map (\( key, value ) -> Http.header key value)
-                      , timeout = Nothing
-                      , body = expected.body
-                      }
-                    )
+                    { url = expected.url
+                    , method = expected.method
+                    , headers =
+                        expected.headers
+                            |> Dict.fromList
+                            |> Dict.toList
+                    , timeout = Nothing
+                    , body = expected.body
+                    }
                 )
             )
 
@@ -52,7 +42,7 @@ suite =
                 runCurl """'http://en.wikipedia.org/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: en-US,en;q=0.8' -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Referer: http://www.wikipedia.org/'  -H 'Connection: keep-alive' --compressed"""
                     |> expectRequest
                         { url = "http://en.wikipedia.org/"
-                        , method = Fusion.Types.GET
+                        , method = Request.GET
                         , headers =
                             [ ( "Accept-Encoding", "gzip, deflate, sdch" )
                             , ( "Accept-Language", "en-US,en;q=0.8" )
@@ -61,7 +51,7 @@ suite =
                             , ( "Referer", "http://www.wikipedia.org/" )
                             , ( "Connection", "keep-alive" )
                             ]
-                        , body = Fusion.Types.Empty
+                        , body = Request.Empty
                         }
         , test "post" <|
             \() ->
@@ -69,7 +59,7 @@ suite =
                     |> runCurl
                     |> expectRequest
                         { url = "http://fiddle.jshell.net/echo/html/"
-                        , method = Fusion.Types.POST
+                        , method = Request.POST
                         , headers =
                             [ ( "Origin", "http://fiddle.jshell.net" )
                             , ( "Accept-Encoding", "gzip, deflate" )
@@ -81,7 +71,7 @@ suite =
                             , ( "X-Requested-With", "XMLHttpRequest" )
                             , ( "Connection", "keep-alive" )
                             ]
-                        , body = Fusion.Types.StringBody "application/x-www-form-urlencoded; charset=UTF-8" "msg1=wow&msg2=such&msg3=data"
+                        , body = Request.StringBody "application/x-www-form-urlencoded; charset=UTF-8" "msg1=wow&msg2=such&msg3=data"
                         }
         , test "example from chrome dev tools copy" <|
             \() ->
@@ -101,7 +91,7 @@ suite =
                     |> runCurl
                     |> expectRequest
                         { url = "https://incrementalelm.com/manifest.json"
-                        , method = Fusion.Types.GET
+                        , method = Request.GET
                         , headers =
                             [ ( "accept", "*/*" )
                             , ( "accept-language", "en-US,en;q=0.9" )
@@ -115,7 +105,7 @@ suite =
                             , ( "sec-gpc", "1" )
                             , ( "user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36" )
                             ]
-                        , body = Fusion.Types.Empty
+                        , body = Request.Empty
                         }
         , test "JSON body" <|
             \() ->
@@ -123,10 +113,10 @@ suite =
                     |> runCurl
                     |> expectRequest
                         { url = "http://fiddle.jshell.net/echo/html/"
-                        , method = Fusion.Types.POST
+                        , method = Request.POST
                         , headers =
                             [ ( "Content-Type", "application/json" )
                             ]
-                        , body = Fusion.Types.StringBody "application/json" """{"json": "data"}"""
+                        , body = Request.StringBody "application/json" """{"json": "data"}"""
                         }
         ]

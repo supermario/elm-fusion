@@ -21,6 +21,7 @@ import OAuth
 import OAuth.AuthorizationCode as OAuth
 import Page
 import RemoteData exposing (RemoteData(..))
+import Request
 import Types exposing (..)
 import Url exposing (Protocol(..), Url)
 
@@ -80,11 +81,11 @@ update msg model =
 
         RequestUrlChanged s ->
             let
-                requestThing : Maybe ( List ( String, String ), Request )
+                requestThing : Maybe Request.Request
                 requestThing =
                     if s |> String.startsWith "curl " then
                         let
-                            requestFromCurl : MatchResult ( List ( String, String ), Request )
+                            requestFromCurl : MatchResult Request.Request
                             requestFromCurl =
                                 String.dropLeft 4 s
                                     |> Curl.runCurl
@@ -105,10 +106,10 @@ update msg model =
                         Nothing
             in
             ( case requestThing of
-                Just ( headers, parsedCurlRequest ) ->
+                Just parsedCurlRequest ->
                     { model
-                        | currentRequest = parsedCurlRequest
-                        , rawHeaders = headers |> List.map (\( key, value ) -> key ++ ": " ++ value) |> String.join "\n"
+                        | currentRequest = parsedCurlRequest |> Request.convert
+                        , rawHeaders = parsedCurlRequest.headers |> List.map (\( key, value ) -> key ++ ": " ++ value) |> String.join "\n"
                     }
 
                 Nothing ->

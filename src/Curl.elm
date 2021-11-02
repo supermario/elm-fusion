@@ -5,9 +5,8 @@ import Cli.OptionsParser as OptionsParser exposing (OptionsParser)
 import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Dict
-import Fusion.Types exposing (Request)
-import Http
 import Regex exposing (Regex)
+import Request exposing (Request)
 
 
 argsRegex : Regex
@@ -27,7 +26,7 @@ replaceEscapedNewlines string =
         |> String.replace "\\\n" " "
 
 
-runCurl : String -> MatchResult ( List ( String, String ), Request )
+runCurl : String -> MatchResult Request
 runCurl command =
     OptionsParser.tryMatch
         (command
@@ -76,7 +75,7 @@ removeLeadingSpace string =
     Regex.replace (regex "^\\s*") (\value -> "") string
 
 
-curl : OptionsParser ( List ( String, String ), Request ) Cli.OptionsParser.BuilderState.NoMoreOptions
+curl : OptionsParser Request Cli.OptionsParser.BuilderState.NoMoreOptions
 curl =
     OptionsParser.build
         (\url data compressed header headers2 ->
@@ -87,39 +86,36 @@ curl =
                         |> List.map splitHeader
                         |> Dict.fromList
             in
-            ( headers |> Dict.toList
-            , { url = url
-              , method =
-                    if data == [] then
-                        Fusion.Types.GET
+            { url = url
+            , method =
+                if data == [] then
+                    Request.GET
 
-                    else
-                        Fusion.Types.POST
-              , headers =
-                    headers
-                        |> Dict.toList
-                        |> List.map (\( key, value ) -> Http.header key value)
-              , body =
-                    if data == [] then
-                        Fusion.Types.Empty
+                else
+                    Request.POST
+            , headers =
+                headers
+                    |> Dict.toList
+            , body =
+                if data == [] then
+                    Request.Empty
 
-                    else
-                        let
-                            contentType : String
-                            contentType =
-                                headers
-                                    |> Dict.get "Content-Type"
-                                    |> Debug.log "Content-Type"
-                                    |> Maybe.withDefault "application/x-www-form-urlencoded"
-                        in
-                        data
-                            |> String.join "\n"
-                            |> Fusion.Types.StringBody
-                                -- TODO handle content-type's besides JSON
-                                contentType
-              , timeout = Nothing
-              }
-            )
+                else
+                    let
+                        contentType : String
+                        contentType =
+                            headers
+                                |> Dict.get "Content-Type"
+                                |> Debug.log "Content-Type"
+                                |> Maybe.withDefault "application/x-www-form-urlencoded"
+                    in
+                    data
+                        |> String.join "\n"
+                        |> Request.StringBody
+                            -- TODO handle content-type's besides JSON
+                            contentType
+            , timeout = Nothing
+            }
         )
         |> OptionsParser.with (Option.requiredPositionalArg "url")
         |> OptionsParser.with (Option.keywordArgList "data")
