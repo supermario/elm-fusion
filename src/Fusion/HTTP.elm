@@ -250,7 +250,7 @@ generatedRequestView model =
         decoderString =
             case model.fusionDecoder of
                 EmptyDecoder ->
-                    "Decode.fail \"TODO you can create a decoder through the UI above\""
+                    "D.fail \"TODO you can create a decoder through the UI above\""
 
                 FusionType tType ->
                     Fusion.Json.decoderFromTType tType
@@ -261,6 +261,7 @@ generatedRequestView model =
         ("""import DataSource.Http
 import Secrets
 import OptimizedDecoder as D
+import OptimizedDecoder.Pipeline exposing (required)
 
 """
             ++ (model.currentRequest
