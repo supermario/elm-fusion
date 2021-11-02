@@ -1,4 +1,4 @@
-module Request exposing (Body(..), Method(..), Request, convert)
+module Request exposing (Body(..), Method(..), Request, convert, methodToString)
 
 import Fusion.Types
 import Http
@@ -37,3 +37,13 @@ convert request =
                 Fusion.Types.POST
     , timeout = request.timeout
     }
+
+
+methodToString : Method -> String
+methodToString method =
+    case method of
+        GET ->
+            "GET"
+
+        POST ->
+            "POST"

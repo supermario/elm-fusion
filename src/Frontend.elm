@@ -108,7 +108,7 @@ update msg model =
             ( case requestThing of
                 Just parsedCurlRequest ->
                     { model
-                        | currentRequest = parsedCurlRequest |> Request.convert
+                        | currentRequest = parsedCurlRequest
                         , rawHeaders = parsedCurlRequest.headers |> List.map (\( key, value ) -> key ++ ": " ++ value) |> String.join "\n"
                     }
 
@@ -133,7 +133,7 @@ update msg model =
                                         (\s_ ->
                                             case String.split ":" s_ of
                                                 n :: v :: _ ->
-                                                    Just (Http.header (String.trim n) (String.trim v))
+                                                    Just ( String.trim n, String.trim v )
 
                                                 _ ->
                                                     Nothing
