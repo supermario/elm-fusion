@@ -14,7 +14,10 @@ suite =
                 { url = "https://example.com"
                 , method = Request.GET
                 , body = Request.Empty
-                , headers = []
+                , headers =
+                    [ ( "accept-language", "en-US,en;q=0.9" )
+                    , ( "Referer", "http://www.wikipedia.org/" )
+                    ]
                 , timeout = Nothing
                 }
                     |> DataSourceGenerator.generate
@@ -26,7 +29,8 @@ data =
             { url = "https://example.com"
             , method = "GET"
             , headers =
-                [
+                [ ( "accept-language", "en-US,en;q=0.9" )
+                , ( "Referer", "http://www.wikipedia.org/" )
                 ]
             , body = DataSource.Http.emptyBody
             }
