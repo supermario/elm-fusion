@@ -21,6 +21,7 @@ type alias FrontendModel =
     , fusionDecoder : FusionDecoder
     , currentRequest : Request.Request
     , httpRequest : RemoteData HttpError String
+    , codeGenMode : CodeGenMode
     }
 
 
@@ -29,6 +30,7 @@ type FrontendMsg
     | UrlChanged Url
       -- Fusion
     | RequestHttpMethodChanged Request.Method
+    | CodeGenModeChanged CodeGenMode
     | RequestUrlChanged String
     | RequestHeadersChanged String
     | RequestBodyChanged String
@@ -37,6 +39,12 @@ type FrontendMsg
     | JsonAddField (List String) String JsonValue
     | JsonAddAll (List String) JsonValue
     | NoOpFrontendMsg
+
+
+type CodeGenMode
+    = ElmPages
+    | ElmHttp
+    | Curl
 
 
 type ToBackend

@@ -55,6 +55,7 @@ init url key =
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
       , httpRequest = NotAsked
+      , codeGenMode = ElmPages
       }
     , Cmd.none
     )
@@ -182,6 +183,9 @@ update msg model =
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
+
+        CodeGenModeChanged codeGenMode ->
+            ( { model | codeGenMode = codeGenMode }, Cmd.none )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )

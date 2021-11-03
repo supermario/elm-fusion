@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import ElmHttpGenerator
 import Fusion.Json
 import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType(..))
 import Fusion.View
@@ -223,7 +224,7 @@ view model =
             Success string ->
                 case D.decodeString decodeJsonAst model.rawString of
                     Ok ast ->
-                        column [ width fill ]
+                        column [ width fill, spacing 10 ]
                             [ row [ width fill, spacing 20 ]
                                 [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
                                 , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
@@ -232,6 +233,11 @@ view model =
                                     , viewFusionJsonInferredTypeString ast
                                     , viewFusionJsonInferredTypeRich ast
                                     ]
+                                ]
+                            , row [ spacing 5 ]
+                                [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
+                                , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
+                                , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
                                 ]
                             , generatedRequestView model
                             ]
@@ -246,6 +252,25 @@ view model =
 
 generatedRequestView : Model -> Element msg
 generatedRequestView model =
+    el
+        [ Font.family [ Font.monospace ]
+        ]
+        ((case model.codeGenMode of
+            ElmPages ->
+                elmPagesCodeGen model
+
+            ElmHttp ->
+                elmHttpCodeGen model
+
+            Curl ->
+                "TODO"
+         )
+            |> text
+        )
+
+
+elmPagesCodeGen : Model -> String
+elmPagesCodeGen model =
     let
         decoderString =
             case model.fusionDecoder of
@@ -255,23 +280,51 @@ generatedRequestView model =
                 FusionType tType ->
                     Fusion.Json.decoderFromTType tType
     in
-    el
-        [ Font.family [ Font.monospace ]
-        ]
-        ("""import DataSource.Http
+    """import DataSource.Http
 import Secrets
 import OptimizedDecoder as D
 import OptimizedDecoder.Pipeline exposing (required)
 
 """
-            ++ (model.currentRequest
-                    |> DataSourceGenerator.generate
-               )
-            ++ indent decoderString
-            |> text
-        )
+        ++ (model.currentRequest
+                |> DataSourceGenerator.generate
+           )
+        ++ "decoder =\n"
+        ++ indent decoderString
 
 
+elmHttpCodeGen : Model -> String
+elmHttpCodeGen model =
+    let
+        decoderString : String
+        decoderString =
+            """
+
+decoder =
+"""
+                ++ ((case model.fusionDecoder of
+                        EmptyDecoder ->
+                            "D.fail \"TODO you can create a decoder through the UI above\""
+
+                        FusionType tType ->
+                            Fusion.Json.decoderFromTType tType
+                    )
+                        |> indent
+                   )
+    in
+    """import Http
+import Json.Decode as D
+import Json.Decode.Pipeline exposing (required)
+
+   
+   """
+        ++ (model.currentRequest
+                |> ElmHttpGenerator.generate
+           )
+        ++ decoderString
+
+
+indent : String -> String
 indent string =
     string
         |> String.lines

@@ -10,7 +10,7 @@ generate request =
 request toMsg =
     Http.get
         { url = """ ++ escapedAndQuoted request.url ++ """
-        , expect = Http.expectString toMsg
+        , expect = Http.expectJson toMsg decoder
         }
 """
 
@@ -30,7 +30,7 @@ request toMsg =
             ++ escapedAndQuoted request.url
             ++ """
         , body = Http.emptyBody
-        , expect = Http.expectString toMsg
+        , expect = Http.expectJson toMsg decoder
         , timeout = Nothing
         , tracker = Nothing
         }
