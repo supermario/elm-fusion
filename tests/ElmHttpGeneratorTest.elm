@@ -24,7 +24,7 @@ suite =
 request toMsg =
     Http.get
         { url = "https://example.com"
-        , expect = Http.expectString toMsg
+        , expect = Http.expectJson toMsg decoder
         }
 """
         , test "GET with headers" <|
@@ -50,7 +50,7 @@ request toMsg =
             ]
         , url = "https://example.com"
         , body = Http.emptyBody
-        , expect = Http.expectString toMsg
+        , expect = Http.expectJson toMsg decoder
         , timeout = Nothing
         , tracker = Nothing
         }
