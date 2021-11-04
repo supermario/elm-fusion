@@ -10,13 +10,14 @@ import Request exposing (Request)
 generate : Request -> String
 generate request =
     if List.isEmpty request.headers then
-        """
-request toMsg =
-    Http.get
-        { url = """ ++ escapedAndQuoted request.url ++ """
-        , expect = Http.expectJson toMsg decoder
-        }
-"""
+        (\_ ->
+            Elm.Gen.Http.get
+                { url = Elm.string request.url
+                , expect = Elm.Gen.Http.expectJson (\_ -> Elm.value "toMsg") (Elm.value "decoder")
+                }
+        )
+            |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
+            |> Elm.declarationToString
 
     else
         (\_ ->
@@ -40,8 +41,3 @@ request toMsg =
         )
             |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
             |> Elm.declarationToString
-
-
-escapedAndQuoted : String -> String
-escapedAndQuoted string =
-    "\"" ++ (string |> String.replace "\"" "\\\"") ++ "\""

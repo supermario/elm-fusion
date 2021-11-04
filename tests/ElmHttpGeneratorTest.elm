@@ -21,13 +21,9 @@ suite =
                     |> toRequest
                     |> ElmHttpGenerator.generate
                     |> Expect.equal
-                        """
-request toMsg =
+                        """request toMsg =
     Http.get
-        { url = "https://example.com"
-        , expect = Http.expectJson toMsg decoder
-        }
-"""
+        { url = "https://example.com", expect = Http.expectJson toMsg decoder }"""
         , test "GET with headers" <|
             \() ->
                 { url = "https://example.com"
