@@ -1,19 +1,23 @@
 module Fusion.HTTP exposing (..)
 
 import Colors exposing (..)
+import DataSourceGenerator
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Elm
+import ElmHttpGenerator
 import Fusion.Json
-import Fusion.Types exposing (..)
+import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType(..))
 import Fusion.View
 import Helpers exposing (..)
 import Http exposing (..)
 import Json.Decode as D
 import List.Extra as List
 import RemoteData exposing (..)
+import Request exposing (Request)
 import Task exposing (Task)
 import Types exposing (..)
 import View.Helpers exposing (..)
@@ -29,10 +33,10 @@ type alias Msg =
 
 emptyRequest : Request
 emptyRequest =
-    { method = GET
+    { method = Request.GET
     , headers = []
     , url = "https://jsonplaceholder.typicode.com/posts/1"
-    , body = StringBody "application/x-www-form-urlencoded" ""
+    , body = Request.StringBody "application/x-www-form-urlencoded" ""
     , timeout = Nothing
     }
 
@@ -51,8 +55,13 @@ emptyRequest =
 --         }
 
 
-toHttpRequestTask : Fusion.Types.Request -> Task HttpError String
-toHttpRequestTask req =
+toHttpRequestTask : Request -> Task HttpError String
+toHttpRequestTask request =
+    let
+        req : Fusion.Types.Request
+        req =
+            Request.convert request
+    in
     Http.task
         { method = toHttpMethod req.method
         , headers = req.headers
@@ -63,33 +72,35 @@ toHttpRequestTask req =
         }
 
 
+toHttpBody : Fusion.Types.RequestBody -> Http.Body
 toHttpBody body =
     case body of
-        Empty ->
+        Fusion.Types.Empty ->
             Http.emptyBody
 
-        StringBody mime string ->
+        Fusion.Types.StringBody mime string ->
             Http.stringBody mime string
 
-        Json ->
+        Fusion.Types.Json ->
             todo "Json toHttpBody" Http.emptyBody
 
-        File ->
+        Fusion.Types.File ->
             todo "File toHttpBody" Http.emptyBody
 
-        Bytes ->
+        Fusion.Types.Bytes ->
             todo "Bytes toHttpBody" Http.emptyBody
 
-        MultiPart parts ->
+        Fusion.Types.MultiPart parts ->
             todo "MultiPart toHttpBody" Http.emptyBody
 
 
+toHttpMethod : Fusion.Types.RequestMethod -> String
 toHttpMethod method =
     case method of
-        GET ->
+        Fusion.Types.GET ->
             "GET"
 
-        POST ->
+        Fusion.Types.POST ->
             "POST"
 
 
@@ -159,15 +170,16 @@ view : Model -> Element Msg
 view model =
     column [ width fill, spacing 10 ]
         [ row [ spacing 5 ]
-            [ buttonHilightOn (model.currentRequest.method == GET) [] (RequestHttpMethodChanged GET) "GET"
-            , buttonHilightOn (model.currentRequest.method == POST) [] (RequestHttpMethodChanged POST) "POST"
+            [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
+            , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
             ]
-        , Input.text [ padding 5 ]
+        , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
             , text = model.currentRequest.url
             , placeholder =
                 Just (Input.placeholder [] <| text "the HTTP URL")
             , label = Input.labelHidden "request url input"
+            , spellcheck = False
             }
         , Input.multiline [ padding 5 ]
             { onChange = RequestHeadersChanged
@@ -213,14 +225,22 @@ view model =
             Success string ->
                 case D.decodeString decodeJsonAst model.rawString of
                     Ok ast ->
-                        row [ width fill, spacing 20 ]
-                            [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
-                            , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                [ button [] ResetDecoder "Reset"
-                                , viewFusionDecoder model
-                                , viewFusionJsonInferredTypeString ast
-                                , viewFusionJsonInferredTypeRich ast
+                        column [ width fill, spacing 10 ]
+                            [ row [ width fill, spacing 20 ]
+                                [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
+                                , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                                    [ button [] ResetDecoder "Reset"
+                                    , viewFusionDecoder model
+                                    , viewFusionJsonInferredTypeString ast
+                                    , viewFusionJsonInferredTypeRich ast
+                                    ]
                                 ]
+                            , row [ spacing 5 ]
+                                [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
+                                , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
+                                , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
+                                ]
+                            , generatedRequestView model
                             ]
 
                     Err err ->
@@ -231,9 +251,92 @@ view model =
         ]
 
 
-updateCurrentRequest : (Request -> Request) -> Model -> Model
+generatedRequestView : Model -> Element msg
+generatedRequestView model =
+    el
+        [ Font.family [ Font.monospace ]
+        ]
+        ((case model.codeGenMode of
+            ElmPages ->
+                elmPagesCodeGen model
+
+            ElmHttp ->
+                elmHttpCodeGen model
+
+            Curl ->
+                "TODO"
+         )
+            |> text
+        )
+
+
+elmPagesCodeGen : Model -> String
+elmPagesCodeGen model =
+    let
+        decoderString =
+            case model.fusionDecoder of
+                EmptyDecoder ->
+                    "D.fail \"TODO you can create a decoder through the UI above\""
+
+                FusionType tType ->
+                    Fusion.Json.decoderFromTType tType
+    in
+    """import DataSource.Http
+import Secrets
+import OptimizedDecoder as D
+import OptimizedDecoder.Pipeline exposing (required)
+
+"""
+        ++ (model.currentRequest
+                |> DataSourceGenerator.generate
+                |> Elm.declarationToString
+           )
+        ++ "\n\ndecoder =\n"
+        ++ indent decoderString
+
+
+elmHttpCodeGen : Model -> String
+elmHttpCodeGen model =
+    let
+        decoderString : String
+        decoderString =
+            "\n\ndecoder =\n"
+                ++ ((case model.fusionDecoder of
+                        EmptyDecoder ->
+                            "D.fail \"TODO you can create a decoder through the UI above\""
+
+                        FusionType tType ->
+                            Fusion.Json.decoderFromTType tType
+                    )
+                        |> indent
+                   )
+    in
+    """import Http
+import Json.Decode as D
+import Json.Decode.Pipeline exposing (required)
+
+   
+   """
+        ++ (model.currentRequest
+                |> ElmHttpGenerator.generate
+                |> Elm.declarationToString
+           )
+        ++ decoderString
+
+
+indent : String -> String
+indent string =
+    string
+        |> String.lines
+        |> List.map (\line -> "    " ++ line)
+        |> String.join "\n"
+
+
+updateCurrentRequest : (Request.Request -> Request.Request) -> Model -> Model
 updateCurrentRequest fn model =
-    { model | currentRequest = fn model.currentRequest }
+    { model
+        | currentRequest = fn model.currentRequest
+    }
 
 
 updateRequestBodyString : String -> Request -> Request
@@ -241,45 +344,22 @@ updateRequestBodyString s req =
     { req
         | body =
             case req.body of
-                Empty ->
+                Request.Empty ->
                     req.body
 
-                StringBody mime string ->
-                    StringBody mime s
-
-                Json ->
-                    req.body
-
-                File ->
-                    req.body
-
-                Bytes ->
-                    req.body
-
-                MultiPart parts ->
-                    req.body
+                Request.StringBody mime string ->
+                    Request.StringBody mime string
     }
 
 
+requestBodyString : { a | body : Request.Body } -> String
 requestBodyString req =
     case req.body of
-        Empty ->
+        Request.Empty ->
             ""
 
-        StringBody mime string ->
-            string
-
-        Json ->
-            ""
-
-        File ->
-            ""
-
-        Bytes ->
-            ""
-
-        MultiPart parts ->
-            ""
+        Request.StringBody contentType body ->
+            body
 
 
 viewFusionDecoder model =

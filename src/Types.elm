@@ -2,13 +2,9 @@ module Types exposing (..)
 
 import Dict exposing (Dict)
 import Fusion.Types exposing (..)
-import Http
-import Json.Decode as Json
 import Lamdera exposing (..)
 import RemoteData exposing (RemoteData)
-import Task exposing (Task)
-import Time
-import Url exposing (Url)
+import Request
 
 
 type Page
@@ -23,8 +19,9 @@ type alias FrontendModel =
     , rawString : String
     , rawHeaders : String
     , fusionDecoder : FusionDecoder
-    , currentRequest : Request
+    , currentRequest : Request.Request
     , httpRequest : RemoteData HttpError String
+    , codeGenMode : CodeGenMode
     }
 
 
@@ -32,7 +29,8 @@ type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
       -- Fusion
-    | RequestHttpMethodChanged RequestMethod
+    | RequestHttpMethodChanged Request.Method
+    | CodeGenModeChanged CodeGenMode
     | RequestUrlChanged String
     | RequestHeadersChanged String
     | RequestBodyChanged String
@@ -43,8 +41,14 @@ type FrontendMsg
     | NoOpFrontendMsg
 
 
+type CodeGenMode
+    = ElmPages
+    | ElmHttp
+    | Curl
+
+
 type ToBackend
-    = RequestExecClicked_ Request
+    = RequestExecClicked_ Request.Request
     | NoOpToBackend
 
 

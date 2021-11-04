@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test": "elm-test-rs --offline",
+    "postinstall": "elm-tooling install"
+  },
+  "devDependencies": {
+    "elm-tooling": "^1.6.0"
+  }
+}

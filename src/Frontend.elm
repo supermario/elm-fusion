@@ -2,8 +2,10 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..), application)
 import Browser.Navigation as Navigation
+import Cli.OptionsParser.MatchResult exposing (MatchResult)
 import Colors exposing (..)
-import Dict
+import Curl
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -13,12 +15,14 @@ import Fusion.Types exposing (..)
 import Helpers exposing (..)
 import Html
 import Http
+import InterpolatedField
 import Json.Decode as Json
 import Lamdera exposing (..)
 import OAuth
 import OAuth.AuthorizationCode as OAuth
 import Page
 import RemoteData exposing (RemoteData(..))
+import Request
 import Types exposing (..)
 import Url exposing (Protocol(..), Url)
 
@@ -52,6 +56,7 @@ init url key =
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
       , httpRequest = NotAsked
+      , codeGenMode = ElmPages
       }
     , Cmd.none
     )
@@ -77,11 +82,44 @@ update msg model =
             ( { model | currentRequest = newReq }, Cmd.none )
 
         RequestUrlChanged s ->
-            ( model
-                |> updateCurrentRequest
-                    (\req ->
-                        { req | url = s }
-                    )
+            let
+                requestThing : Maybe Request.Request
+                requestThing =
+                    if s |> String.startsWith "curl " then
+                        let
+                            requestFromCurl : MatchResult Request.Request
+                            requestFromCurl =
+                                String.dropLeft 4 s
+                                    |> Curl.runCurl
+                        in
+                        case requestFromCurl of
+                            Cli.OptionsParser.MatchResult.Match match ->
+                                case match of
+                                    Ok okMatch ->
+                                        Just okMatch
+
+                                    Err matchError ->
+                                        Nothing
+
+                            Cli.OptionsParser.MatchResult.NoMatch strings ->
+                                Nothing
+
+                    else
+                        Nothing
+            in
+            ( case requestThing of
+                Just parsedCurlRequest ->
+                    { model
+                        | currentRequest = parsedCurlRequest
+                        , rawHeaders = parsedCurlRequest.headers |> List.map (\( key, value ) -> InterpolatedField.toString key ++ ": " ++ InterpolatedField.toString value) |> String.join "\n"
+                    }
+
+                Nothing ->
+                    model
+                        |> updateCurrentRequest
+                            (\req ->
+                                { req | url = s }
+                            )
             , Cmd.none
             )
 
@@ -97,7 +135,10 @@ update msg model =
                                         (\s_ ->
                                             case String.split ":" s_ of
                                                 n :: v :: _ ->
-                                                    Just (Http.header (String.trim n) (String.trim v))
+                                                    Just
+                                                        ( String.trim n |> InterpolatedField.fromString
+                                                        , String.trim v |> InterpolatedField.fromString
+                                                        )
 
                                                 _ ->
                                                     Nothing
@@ -146,6 +187,9 @@ update msg model =
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
+
+        CodeGenModeChanged codeGenMode ->
+            ( { model | codeGenMode = codeGenMode }, Cmd.none )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
