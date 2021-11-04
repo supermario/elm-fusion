@@ -291,7 +291,7 @@ import OptimizedDecoder.Pipeline exposing (required)
                 |> DataSourceGenerator.generate
                 |> Elm.declarationToString
            )
-        ++ "decoder =\n"
+        ++ "\n\ndecoder =\n"
         ++ indent decoderString
 
 
@@ -300,10 +300,7 @@ elmHttpCodeGen model =
     let
         decoderString : String
         decoderString =
-            """
-
-decoder =
-"""
+            "\n\ndecoder =\n"
                 ++ ((case model.fusionDecoder of
                         EmptyDecoder ->
                             "D.fail \"TODO you can create a decoder through the UI above\""
