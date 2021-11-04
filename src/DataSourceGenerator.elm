@@ -13,16 +13,6 @@ import Request exposing (Request)
 generate : Request -> Elm.Declaration
 generate request =
     let
-        referencedVariables : Maybe (List.NonEmpty.NonEmpty InterpolatedField.Variable)
-        referencedVariables =
-            request.headers
-                |> List.concatMap
-                    (\( key, value ) ->
-                        InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
-                    )
-                |> List.append (InterpolatedField.referencedVariables request.url)
-                |> List.NonEmpty.fromList
-
         requestRecordExpression : Elm.Expression
         requestRecordExpression =
             Elm.record
@@ -41,7 +31,7 @@ generate request =
                 , Elm.field "body" (bodyGenerator request)
                 ]
     in
-    (case referencedVariables of
+    (case request |> Request.referencedVariables |> List.NonEmpty.fromList of
         Nothing ->
             Elm.Gen.DataSource.Http.request
                 (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)

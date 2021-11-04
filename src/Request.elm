@@ -1,4 +1,4 @@
-module Request exposing (Body(..), Method(..), Request, convert, methodToString)
+module Request exposing (Body(..), Method(..), Request, convert, methodToString, referencedVariables)
 
 import Dict
 import Fusion.Types
@@ -65,3 +65,13 @@ methodToString method =
 
         POST ->
             "POST"
+
+
+referencedVariables : Request -> List InterpolatedField.Variable
+referencedVariables request =
+    request.headers
+        |> List.concatMap
+            (\( key, value ) ->
+                InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
+            )
+        |> List.append (InterpolatedField.referencedVariables request.url)

@@ -10,16 +10,6 @@ import Request exposing (Request)
 
 generate : Request -> Elm.Declaration
 generate request =
-    let
-        referencedVariables : List InterpolatedField.Variable
-        referencedVariables =
-            request.headers
-                |> List.concatMap
-                    (\( key, value ) ->
-                        InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
-                    )
-                |> List.append (InterpolatedField.referencedVariables request.url)
-    in
     (if List.isEmpty request.headers then
         Elm.Gen.Http.get
             { url = InterpolatedField.toElmExpression request.url
@@ -53,7 +43,7 @@ generate request =
                         , InterpolatedField.toElmVar variable
                         )
                     )
-                    referencedVariables
+                    (Request.referencedVariables request)
             )
 
 
