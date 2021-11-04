@@ -64,6 +64,36 @@ data =
             }
         )
 """
+        , test "with Secrets" <|
+            \() ->
+                { url = "https://example.com"
+                , method = Request.GET
+                , body = Request.Empty
+                , headers =
+                    [ ( "accept-language", "en-US,en;q=0.9" )
+                    , ( "Authorization", "Basic ${AUTH_TOKEN}" )
+                    ]
+                }
+                    |> toRequest
+                    |> DataSourceGenerator.generate
+                    |> Expect.equal
+                        """
+data =
+    DataSource.Http.request
+        (Secrets.succeed
+            (\\authToken ->
+                { url = "https://example.com"
+                , method = "GET"
+                , headers =
+                    [ ( "accept-language", "en-US,en;q=0.9" )
+                    , ( "Authorization", "Basic " ++ authToken )
+                    ]
+                , body = DataSource.Http.emptyBody
+                }
+            )
+            |> Secrets.with "AUTH_TOKEN"
+        )
+"""
         ]
 
 

@@ -1,4 +1,4 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, statementsHelp, toElmString, toString, tokenParser)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmString, toString, tokenParser, variableName)
 
 import Dict exposing (Dict)
 import Parser exposing ((|.), (|=), Parser)
@@ -7,6 +7,11 @@ import String.Extra
 
 type InterpolatedField
     = InterpolatedField String
+
+
+variableName : Variable -> String
+variableName (Variable name) =
+    name
 
 
 interpolate : Dict String String -> InterpolatedField -> String
@@ -20,9 +25,9 @@ interpolate interpolationValues (InterpolatedField raw) =
                             RawText rawText ->
                                 rawText
 
-                            InterpolatedText (Variable variableName) ->
+                            InterpolatedText (Variable name) ->
                                 interpolationValues
-                                    |> Dict.get variableName
+                                    |> Dict.get name
                                     |> Maybe.withDefault ""
                     )
                 |> String.join ""
@@ -100,8 +105,8 @@ toElmString (InterpolatedField raw) =
                             RawText rawText ->
                                 escapedAndQuoted rawText
 
-                            InterpolatedText (Variable variableName) ->
-                                variableName |> String.toLower |> String.Extra.camelize
+                            InterpolatedText (Variable name) ->
+                                name |> String.toLower |> String.Extra.camelize
                     )
                 |> String.join " ++ "
 
@@ -110,8 +115,19 @@ toElmString (InterpolatedField raw) =
             "TODO"
 
 
-referencedVariables : List Content -> List Variable
-referencedVariables contents =
+referencedVariables : InterpolatedField -> List Variable
+referencedVariables (InterpolatedField raw) =
+    case raw |> Parser.run fieldParser of
+        Ok parsed ->
+            referencedVariables_ parsed
+
+        Err _ ->
+            -- TODO
+            []
+
+
+referencedVariables_ : List Content -> List Variable
+referencedVariables_ contents =
     contents
         |> List.filterMap
             (\text ->
