@@ -10,7 +10,7 @@ import List.NonEmpty
 import Request exposing (Request)
 
 
-generate : Request -> String
+generate : Request -> Elm.Declaration
 generate request =
     let
         referencedVariables : Maybe (List.NonEmpty.NonEmpty InterpolatedField.Variable)
@@ -40,13 +40,11 @@ generate request =
                 , Elm.field "body" (bodyGenerator request)
                 ]
     in
-    case referencedVariables of
+    (case referencedVariables of
         Nothing ->
             Elm.Gen.DataSource.Http.request
                 (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
                 (Elm.value "decoder")
-                |> Elm.declaration "data"
-                |> Elm.declarationToString
 
         Just variables ->
             let
@@ -73,8 +71,8 @@ generate request =
             Elm.Gen.DataSource.Http.request
                 secretsPipeline
                 (Elm.value "decoder")
-                |> Elm.declaration "data"
-                |> Elm.declarationToString
+    )
+        |> Elm.declaration "data"
 
 
 bodyGenerator : Request -> Elm.Expression

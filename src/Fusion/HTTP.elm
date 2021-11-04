@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Elm
 import ElmHttpGenerator
 import Fusion.Json
 import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType(..))
@@ -288,6 +289,7 @@ import OptimizedDecoder.Pipeline exposing (required)
 """
         ++ (model.currentRequest
                 |> DataSourceGenerator.generate
+                |> Elm.declarationToString
            )
         ++ "decoder =\n"
         ++ indent decoderString
@@ -320,6 +322,7 @@ import Json.Decode.Pipeline exposing (required)
    """
         ++ (model.currentRequest
                 |> ElmHttpGenerator.generate
+                |> Elm.declarationToString
            )
         ++ decoderString
 

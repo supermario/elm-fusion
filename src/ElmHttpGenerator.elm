@@ -7,20 +7,17 @@ import InterpolatedField
 import Request exposing (Request)
 
 
-generate : Request -> String
+generate : Request -> Elm.Declaration
 generate request =
-    if List.isEmpty request.headers then
-        (\_ ->
+    (if List.isEmpty request.headers then
+        \_ ->
             Elm.Gen.Http.get
                 { url = Elm.string request.url
                 , expect = Elm.Gen.Http.expectJson (\_ -> Elm.value "toMsg") (Elm.value "decoder")
                 }
-        )
-            |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
-            |> Elm.declarationToString
 
-    else
-        (\_ ->
+     else
+        \_ ->
             Elm.Gen.Http.request
                 { url = Elm.string request.url
                 , headers =
@@ -38,6 +35,5 @@ generate request =
                 , expect = Elm.Gen.Http.expectJson (\_ -> Elm.value "toMsg") (Elm.value "decoder")
                 , tracker = Elm.value "Nothing"
                 }
-        )
-            |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
-            |> Elm.declarationToString
+    )
+        |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
