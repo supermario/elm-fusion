@@ -19,8 +19,8 @@ generate request =
                     )
                 |> List.map InterpolatedField.variableName
 
-        requestRecord : String
-        requestRecord =
+        requestRecordExpression : Elm.Expression
+        requestRecordExpression =
             Elm.record
                 [ Elm.field "url" (Elm.string request.url)
                 , Elm.field "method" (request.method |> Request.methodToString |> Elm.string)
@@ -36,28 +36,23 @@ generate request =
                     )
                 , Elm.field "body" (bodyGenerator request)
                 ]
-                |> Elm.toString
     in
     if List.isEmpty referencedVariables then
-        """
-data =
-    DataSource.Http.request
-        (Secrets.succeed
-"""
-            ++ indent (indent (indent requestRecord))
-            ++ """
-        )
-"""
+        Elm.Gen.DataSource.Http.request
+            (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
+            (Elm.value "decoder")
+            |> Elm.declaration "data"
+            |> Elm.declarationToString
 
     else
         """
 data =
     DataSource.Http.request
-        (Secrets.succeed
+        (Pages.Secrets.succeed
 """
             ++ """            (\\authToken ->
 """
-            ++ indent (indent (indent (indent requestRecord)))
+            ++ indent (indent (indent (indent (requestRecordExpression |> Elm.toString))))
             ++ "\n            )\n"
             ++ (List.map
                     (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName)
@@ -66,6 +61,7 @@ data =
                )
             ++ """
         )
+        decoder
 """
 
 
