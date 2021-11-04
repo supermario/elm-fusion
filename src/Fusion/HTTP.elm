@@ -282,7 +282,7 @@ elmPagesCodeGen model =
                     Fusion.Json.decoderFromTType tType
     in
     """import DataSource.Http
-import Secrets
+import Pages.Secrets
 import OptimizedDecoder as D
 import OptimizedDecoder.Pipeline exposing (required)
 
