@@ -158,8 +158,8 @@ update msg model =
             , Cmd.none
             )
 
-        RequestExecClicked ->
-            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (RequestExecClicked_ model.currentRequest) )
+        MakeRequestClicked ->
+            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (MakeRequestClicked_ model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )

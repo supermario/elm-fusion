@@ -34,7 +34,7 @@ type FrontendMsg
     | RequestUrlChanged String
     | RequestHeadersChanged String
     | RequestBodyChanged String
-    | RequestExecClicked
+    | MakeRequestClicked
     | ResetDecoder
     | JsonAddField (List String) String JsonValue
     | JsonAddAll (List String) JsonValue
@@ -48,7 +48,7 @@ type CodeGenMode
 
 
 type ToBackend
-    = RequestExecClicked_ Request.Request
+    = MakeRequestClicked_ Request.Request
     | NoOpToBackend
 
 

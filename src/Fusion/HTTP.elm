@@ -172,6 +172,14 @@ view model =
         [ row [ spacing 5 ]
             [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
             , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
+            , el
+                [ onClick MakeRequestClicked
+                , Background.color green
+                , padding 10
+                , pointer
+                ]
+              <|
+                text "Make Request"
             ]
         , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
@@ -195,14 +203,6 @@ view model =
             , label = Input.labelHidden "request body input"
             , spellcheck = False
             }
-        , el
-            [ onClick RequestExecClicked
-            , Background.color grey
-            , padding 10
-            , pointer
-            ]
-          <|
-            text "Exec"
         , paragraph []
             [ case model.httpRequest of
                 NotAsked ->
@@ -315,7 +315,7 @@ elmHttpCodeGen model =
 import Json.Decode as D
 import Json.Decode.Pipeline exposing (required)
 
-   
+
    """
         ++ (model.currentRequest
                 |> ElmHttpGenerator.generate
