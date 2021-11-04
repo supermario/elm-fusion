@@ -14,6 +14,7 @@ import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType
 import Fusion.View
 import Helpers exposing (..)
 import Http exposing (..)
+import InterpolatedField
 import Json.Decode as D
 import List.Extra as List
 import RemoteData exposing (..)
@@ -35,7 +36,7 @@ emptyRequest : Request
 emptyRequest =
     { method = Request.GET
     , headers = []
-    , url = "https://jsonplaceholder.typicode.com/posts/1"
+    , url = "https://jsonplaceholder.typicode.com/posts/1" |> InterpolatedField.fromString
     , body = Request.StringBody "application/x-www-form-urlencoded" ""
     , timeout = Nothing
     }
@@ -175,7 +176,7 @@ view model =
             ]
         , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
-            , text = model.currentRequest.url
+            , text = model.currentRequest.url |> InterpolatedField.toString
             , placeholder =
                 Just (Input.placeholder [] <| text "the HTTP URL")
             , label = Input.labelHidden "request url input"

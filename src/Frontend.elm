@@ -118,7 +118,7 @@ update msg model =
                     model
                         |> updateCurrentRequest
                             (\req ->
-                                { req | url = s }
+                                { req | url = InterpolatedField.fromString s }
                             )
             , Cmd.none
             )

@@ -9,7 +9,7 @@ import InterpolatedField exposing (InterpolatedField)
 type alias Request =
     { method : Method
     , headers : List ( InterpolatedField, InterpolatedField )
-    , url : String
+    , url : InterpolatedField
     , body : Body
     , timeout : Maybe Float
 
@@ -45,7 +45,7 @@ convert request =
                         (InterpolatedField.interpolate Dict.empty value)
                 )
     , body = Fusion.Types.Empty
-    , url = request.url
+    , url = request.url |> InterpolatedField.interpolate Dict.empty
     , method =
         case request.method of
             GET ->

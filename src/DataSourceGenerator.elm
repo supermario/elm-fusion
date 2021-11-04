@@ -20,12 +20,13 @@ generate request =
                     (\( key, value ) ->
                         InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
                     )
+                |> List.append (InterpolatedField.referencedVariables request.url)
                 |> List.NonEmpty.fromList
 
         requestRecordExpression : Elm.Expression
         requestRecordExpression =
             Elm.record
-                [ Elm.field "url" (Elm.string request.url)
+                [ Elm.field "url" (request.url |> InterpolatedField.toElmExpression)
                 , Elm.field "method" (request.method |> Request.methodToString |> Elm.string)
                 , Elm.field "headers"
                     (request.headers

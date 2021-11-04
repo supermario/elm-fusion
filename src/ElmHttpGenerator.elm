@@ -18,16 +18,17 @@ generate request =
                     (\( key, value ) ->
                         InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
                     )
+                |> List.append (InterpolatedField.referencedVariables request.url)
     in
     (if List.isEmpty request.headers then
         Elm.Gen.Http.get
-            { url = Elm.string request.url
+            { url = InterpolatedField.toElmExpression request.url
             , expect = Elm.Gen.Http.expectJson (\_ -> Elm.value "toMsg") (Elm.value "decoder")
             }
 
      else
         Elm.Gen.Http.request
-            { url = Elm.string request.url
+            { url = InterpolatedField.toElmExpression request.url
             , headers =
                 request.headers
                     |> List.map

@@ -87,7 +87,7 @@ curl =
                         |> List.map splitHeader
                         |> Dict.fromList
             in
-            { url = url
+            { url = url |> InterpolatedField.fromString
             , method =
                 if data == [] then
                     Request.GET
