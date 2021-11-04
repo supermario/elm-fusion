@@ -34,6 +34,15 @@ suite =
                                 ]
                             )
             ]
+        , describe "codegen"
+            [ test "interpolation with curly" <|
+                \() ->
+                    "Hello ${NAME}!"
+                        |> InterpolatedField.fromString
+                        |> InterpolatedField.toElmString
+                        |> Expect.equal
+                            """"Hello " ++ name ++ "!\""""
+            ]
         ]
 
 

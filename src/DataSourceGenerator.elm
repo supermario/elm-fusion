@@ -22,11 +22,11 @@ data =
         ++ (request.headers
                 |> List.map
                     (\( key, value ) ->
-                        "( \""
-                            ++ InterpolatedField.interpolate Dict.empty key
-                            ++ "\", \""
-                            ++ InterpolatedField.interpolate Dict.empty value
-                            ++ "\" )"
+                        "( "
+                            ++ InterpolatedField.toElmString key
+                            ++ ", "
+                            ++ InterpolatedField.toElmString value
+                            ++ " )"
                     )
                 |> String.join "\n                , "
            )

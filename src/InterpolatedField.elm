@@ -1,7 +1,8 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, statementsHelp, toString, tokenParser)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, statementsHelp, toElmString, toString, tokenParser)
 
 import Dict exposing (Dict)
 import Parser exposing ((|.), (|=), Parser)
+import String.Extra
 
 
 type InterpolatedField
@@ -86,3 +87,43 @@ interpolationField =
 
 type InterpolationField
     = InterpolationField String
+
+
+toElmString : InterpolatedField -> String
+toElmString (InterpolatedField raw) =
+    case Parser.run fieldParser raw of
+        Ok contents ->
+            contents
+                |> List.map
+                    (\value ->
+                        case value of
+                            RawText rawText ->
+                                escapedAndQuoted rawText
+
+                            InterpolatedText (Variable variableName) ->
+                                variableName |> String.toLower |> String.Extra.camelize
+                    )
+                |> String.join " ++ "
+
+        -- TODO only add parens if more than 1? Or leave that up to the calling code?
+        Err error ->
+            "TODO"
+
+
+referencedVariables : List Content -> List Variable
+referencedVariables contents =
+    contents
+        |> List.filterMap
+            (\text ->
+                case text of
+                    RawText _ ->
+                        Nothing
+
+                    InterpolatedText variable ->
+                        Just variable
+            )
+
+
+escapedAndQuoted : String -> String
+escapedAndQuoted string =
+    "\"" ++ (string |> String.replace "\"" "\\\"") ++ "\""
