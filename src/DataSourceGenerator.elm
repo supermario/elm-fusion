@@ -65,8 +65,10 @@ generate request =
 
                 secretsPipeline : Elm.Expression
                 secretsPipeline =
-                    Elm.apply (Elm.value "Secrets.with") [ Elm.string "AUTH_TOKEN" ]
-                        |> Elm.pipe requestLambda
+                    variables
+                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.variableName variable) ])
+                        |> List.NonEmpty.cons requestLambda
+                        |> List.NonEmpty.foldr1 Elm.pipe
             in
             Elm.Gen.DataSource.Http.request
                 secretsPipeline

@@ -94,6 +94,36 @@ suite =
             |> Secrets.with "AUTH_TOKEN"
         )
         decoder"""
+        , test "with two Secrets" <|
+            \() ->
+                { url = "https://example.com"
+                , method = Request.GET
+                , body = Request.Empty
+                , headers =
+                    [ ( "accept-language", "${PREFERRED_LANGUAGE};q=0.9" )
+                    , ( "Authorization", "Basic ${AUTH_TOKEN}" )
+                    ]
+                }
+                    |> toRequest
+                    |> DataSourceGenerator.generate
+                    |> Expect.equal
+                        """data =
+    DataSource.Http.request
+        (Pages.Secrets.succeed
+            (\\preferredLanguage authToken ->
+                { url = "https://example.com"
+                , method = "GET"
+                , headers =
+                    [ ( "accept-language", preferredLanguage ++ ";q=0.9" )
+                    , ( "Authorization", "Basic " ++ authToken )
+                    ]
+                , body = DataSource.Http.emptyBody
+                }
+            )
+            |> Secrets.with "PREFERRED_LANGUAGE"
+            |> Secrets.with "AUTH_TOKEN"
+        )
+        decoder"""
         ]
 
 
