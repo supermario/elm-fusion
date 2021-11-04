@@ -113,7 +113,7 @@ curl =
                         contentType =
                             headers
                                 |> Dict.get "Content-Type"
-                                |> Debug.log "Content-Type"
+                                -- |> Debug.log "Content-Type"
                                 |> Maybe.withDefault "application/x-www-form-urlencoded"
                     in
                     data
