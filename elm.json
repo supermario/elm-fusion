@@ -2,11 +2,14 @@
     "type": "application",
     "source-directories": [
         "src",
-        "elm-cli-options-parser/src"
+        "elm-cli-options-parser/src",
+        "elm-prefab/src",
+        "generators"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "Chadtech/elm-bool-extra": "2.4.2",
             "avh4/elm-color": "1.0.0",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",
@@ -18,6 +21,7 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.2.4",
+            "elm-community/maybe-extra": "5.2.1",
             "elm-community/string-extra": "4.0.1",
             "krisajenkins/remotedata": "6.0.1",
             "lamdera/codecs": "1.0.0",
@@ -25,6 +29,9 @@
             "mdgriffith/elm-ui": "1.1.8",
             "mpizenberg/elm-test-runner": "4.0.5",
             "noahzgordon/elm-color-extra": "1.0.2",
+            "rtfeldman/elm-hex": "1.0.0",
+            "stil4m/elm-syntax": "7.2.8",
+            "the-sett/elm-pretty-printer": "3.0.0",
             "truqu/elm-oauth2": "7.0.1"
         },
         "indirect": {
@@ -34,10 +41,12 @@
             "elm/file": "1.0.5",
             "elm/random": "1.0.0",
             "elm/virtual-dom": "1.0.2",
+            "elm-community/basics-extra": "4.1.0",
             "elm-explorations/test": "1.2.2",
             "folkertdev/elm-sha2": "1.0.0",
             "fredcy/elm-parseint": "2.0.1",
-            "rtfeldman/elm-hex": "1.0.0"
+            "miniBill/elm-unicode": "1.0.2",
+            "stil4m/structured-writer": "1.0.3"
         }
     },
     "test-dependencies": {

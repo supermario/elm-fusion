@@ -1,6 +1,8 @@
 module DataSourceGenerator exposing (..)
 
-import Dict
+import Elm
+import Elm.Gen.DataSource.Http
+import Elm.Gen.Pages.Secrets
 import InterpolatedField
 import Request exposing (Request)
 
@@ -40,7 +42,7 @@ generate request =
                 ++ """
                 ]
             , body = """
-                ++ bodyGenerator request
+                ++ (bodyGenerator request |> Elm.toString)
                 ++ """
             }"""
     in
@@ -64,22 +66,21 @@ data =
 """
 
 
-bodyGenerator : Request -> String
+bodyGenerator : Request -> Elm.Expression
 bodyGenerator request =
     case request.body of
         Request.Empty ->
-            """DataSource.Http.emptyBody"""
+            Elm.Gen.DataSource.Http.emptyBody
 
         Request.StringBody contentType body ->
-            "DataSource.Http.stringBody "
-                ++ escapedAndQuoted contentType
-                ++ " "
-                ++ escapedAndQuoted body
+            Elm.Gen.DataSource.Http.stringBody (Elm.string contentType) (Elm.string body)
 
 
 escapedAndQuoted : String -> String
 escapedAndQuoted string =
-    "\"" ++ (string |> String.replace "\"" "\\\"") ++ "\""
+    string
+        |> Elm.string
+        |> Elm.toString
 
 
 indent : String -> String
