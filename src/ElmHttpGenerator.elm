@@ -1,6 +1,8 @@
 module ElmHttpGenerator exposing (generate)
 
-import Dict
+import Elm
+import Elm.Annotation
+import Elm.Gen.Http
 import InterpolatedField
 import Request exposing (Request)
 
@@ -17,35 +19,27 @@ request toMsg =
 """
 
     else
-        """
-request toMsg =
-    Http.request
-        { method = """
-            ++ escapedAndQuoted (Request.methodToString request.method)
-            ++ """
-        , headers =
-            [ """
-            ++ (request.headers
-                    |> List.map
-                        (\( key, value ) ->
-                            "Http.header "
-                                ++ escapedAndQuoted (InterpolatedField.interpolate Dict.empty key)
-                                ++ " "
-                                ++ escapedAndQuoted (InterpolatedField.interpolate Dict.empty value)
-                        )
-                    |> String.join "\n            , "
-               )
-            ++ """
-            ]
-        , url = """
-            ++ escapedAndQuoted request.url
-            ++ """
-        , body = Http.emptyBody
-        , expect = Http.expectJson toMsg decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-"""
+        (\_ ->
+            Elm.Gen.Http.request
+                { url = Elm.string request.url
+                , headers =
+                    request.headers
+                        |> List.map
+                            (\( key, value ) ->
+                                Elm.Gen.Http.header
+                                    (InterpolatedField.toElmExpression key)
+                                    (InterpolatedField.toElmExpression value)
+                            )
+                        |> Elm.list
+                , method = request.method |> Request.methodToString |> Elm.string
+                , body = Elm.Gen.Http.emptyBody
+                , timeout = Elm.value "Nothing"
+                , expect = Elm.Gen.Http.expectJson (\_ -> Elm.value "toMsg") (Elm.value "decoder")
+                , tracker = Elm.value "Nothing"
+                }
+        )
+            |> Elm.fn "request" ( "toMsg", Elm.Annotation.unit )
+            |> Elm.declarationToString
 
 
 escapedAndQuoted : String -> String

@@ -41,8 +41,7 @@ request toMsg =
                     |> toRequest
                     |> ElmHttpGenerator.generate
                     |> Expect.equal
-                        """
-request toMsg =
+                        """request toMsg =
     Http.request
         { method = "GET"
         , headers =
@@ -54,8 +53,7 @@ request toMsg =
         , expect = Http.expectJson toMsg decoder
         , timeout = Nothing
         , tracker = Nothing
-        }
-"""
+        }"""
         ]
 
 
