@@ -78,8 +78,7 @@ suite =
                     |> toRequest
                     |> DataSourceGenerator.generate
                     |> Expect.equal
-                        """
-data =
+                        """data =
     DataSource.Http.request
         (Pages.Secrets.succeed
             (\\authToken ->
@@ -94,8 +93,7 @@ data =
             )
             |> Secrets.with "AUTH_TOKEN"
         )
-        decoder
-"""
+        decoder"""
         ]
 
 

@@ -1,4 +1,4 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmString, toString, tokenParser, variableName)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmString, toElmVar, toString, tokenParser, variableName)
 
 import Dict exposing (Dict)
 import Elm
@@ -138,6 +138,11 @@ toElmExpression (InterpolatedField raw) =
 
         Err error ->
             Elm.string "TODO"
+
+
+toElmVar : Variable -> Elm.Pattern.Pattern
+toElmVar (Variable rawName) =
+    rawName |> String.toLower |> String.Extra.camelize |> Elm.Pattern.var
 
 
 referencedVariables : InterpolatedField -> List Variable

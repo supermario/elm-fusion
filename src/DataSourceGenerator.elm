@@ -1,8 +1,10 @@
 module DataSourceGenerator exposing (..)
 
 import Elm
+import Elm.Annotation
 import Elm.Gen.DataSource.Http
 import Elm.Gen.Pages.Secrets
+import Elm.Pattern
 import InterpolatedField
 import List.NonEmpty
 import Request exposing (Request)
@@ -11,14 +13,13 @@ import Request exposing (Request)
 generate : Request -> String
 generate request =
     let
-        referencedVariables : Maybe (List.NonEmpty.NonEmpty String)
+        referencedVariables : Maybe (List.NonEmpty.NonEmpty InterpolatedField.Variable)
         referencedVariables =
             request.headers
                 |> List.concatMap
                     (\( key, value ) ->
                         InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
                     )
-                |> List.map InterpolatedField.variableName
                 |> List.NonEmpty.fromList
 
         requestRecordExpression : Elm.Expression
@@ -48,25 +49,30 @@ generate request =
                 |> Elm.declarationToString
 
         Just variables ->
-            """
-data =
-    DataSource.Http.request
-        (Pages.Secrets.succeed
-"""
-                ++ """            (\\authToken ->
-"""
-                ++ indent (indent (indent (indent (requestRecordExpression |> Elm.toString))))
-                ++ "\n            )\n"
-                ++ (List.NonEmpty.map
-                        (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName)
-                        variables
+            let
+                lambdaVars : List ( Elm.Pattern.Pattern, Elm.Annotation.Annotation )
+                lambdaVars =
+                    variables
+                        |> List.NonEmpty.map (\variable -> ( InterpolatedField.toElmVar variable, Elm.Annotation.string ))
                         |> List.NonEmpty.toList
-                        |> String.join "\n"
-                   )
-                ++ """
-        )
-        decoder
-"""
+
+                requestLambda : Elm.Expression
+                requestLambda =
+                    Elm.lambdaWith
+                        lambdaVars
+                        requestRecordExpression
+                        |> Elm.Gen.Pages.Secrets.succeed
+
+                secretsPipeline : Elm.Expression
+                secretsPipeline =
+                    Elm.apply (Elm.value "Secrets.with") [ Elm.string "AUTH_TOKEN" ]
+                        |> Elm.pipe requestLambda
+            in
+            Elm.Gen.DataSource.Http.request
+                secretsPipeline
+                (Elm.value "decoder")
+                |> Elm.declaration "data"
+                |> Elm.declarationToString
 
 
 bodyGenerator : Request -> Elm.Expression
@@ -77,13 +83,6 @@ bodyGenerator request =
 
         Request.StringBody contentType body ->
             Elm.Gen.DataSource.Http.stringBody (Elm.string contentType) (Elm.string body)
-
-
-escapedAndQuoted : String -> String
-escapedAndQuoted string =
-    string
-        |> Elm.string
-        |> Elm.toString
 
 
 indent : String -> String
