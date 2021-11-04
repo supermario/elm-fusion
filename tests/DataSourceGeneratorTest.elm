@@ -1,6 +1,7 @@
 module DataSourceGeneratorTest exposing (..)
 
 import DataSourceGenerator
+import Elm
 import Expect
 import InterpolatedField
 import Request exposing (Request)
@@ -22,6 +23,7 @@ suite =
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """data =
     DataSource.Http.request
@@ -48,6 +50,7 @@ suite =
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """data =
     DataSource.Http.request
@@ -77,6 +80,7 @@ suite =
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """data =
     DataSource.Http.request
@@ -106,6 +110,7 @@ suite =
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """data =
     DataSource.Http.request

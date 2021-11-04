@@ -1,10 +1,11 @@
 module ElmHttpGeneratorTest exposing (suite)
 
+import Elm
 import ElmHttpGenerator
 import Expect
 import InterpolatedField
 import Request exposing (Request)
-import Test exposing (Test, describe, only, test)
+import Test exposing (Test, describe, test)
 
 
 suite : Test
@@ -20,6 +21,7 @@ suite =
                 }
                     |> toRequest
                     |> ElmHttpGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """request toMsg =
     Http.get
@@ -36,6 +38,7 @@ suite =
                 }
                     |> toRequest
                     |> ElmHttpGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
                         """request toMsg =
     Http.request
