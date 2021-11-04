@@ -4,13 +4,14 @@ import Elm
 import Elm.Gen.DataSource.Http
 import Elm.Gen.Pages.Secrets
 import InterpolatedField
+import List.NonEmpty
 import Request exposing (Request)
 
 
 generate : Request -> String
 generate request =
     let
-        referencedVariables : List String
+        referencedVariables : Maybe (List.NonEmpty.NonEmpty String)
         referencedVariables =
             request.headers
                 |> List.concatMap
@@ -18,6 +19,7 @@ generate request =
                         InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
                     )
                 |> List.map InterpolatedField.variableName
+                |> List.NonEmpty.fromList
 
         requestRecordExpression : Elm.Expression
         requestRecordExpression =
@@ -37,29 +39,31 @@ generate request =
                 , Elm.field "body" (bodyGenerator request)
                 ]
     in
-    if List.isEmpty referencedVariables then
-        Elm.Gen.DataSource.Http.request
-            (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
-            (Elm.value "decoder")
-            |> Elm.declaration "data"
-            |> Elm.declarationToString
+    case referencedVariables of
+        Nothing ->
+            Elm.Gen.DataSource.Http.request
+                (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
+                (Elm.value "decoder")
+                |> Elm.declaration "data"
+                |> Elm.declarationToString
 
-    else
-        """
+        Just variables ->
+            """
 data =
     DataSource.Http.request
         (Pages.Secrets.succeed
 """
-            ++ """            (\\authToken ->
+                ++ """            (\\authToken ->
 """
-            ++ indent (indent (indent (indent (requestRecordExpression |> Elm.toString))))
-            ++ "\n            )\n"
-            ++ (List.map
-                    (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName)
-                    referencedVariables
-                    |> String.join "\n"
-               )
-            ++ """
+                ++ indent (indent (indent (indent (requestRecordExpression |> Elm.toString))))
+                ++ "\n            )\n"
+                ++ (List.NonEmpty.map
+                        (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName)
+                        variables
+                        |> List.NonEmpty.toList
+                        |> String.join "\n"
+                   )
+                ++ """
         )
         decoder
 """
