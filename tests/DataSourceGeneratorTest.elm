@@ -20,6 +20,7 @@ suite =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
                     ]
+                , auth = Nothing
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
@@ -47,6 +48,7 @@ suite =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
                     ]
+                , auth = Nothing
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
@@ -77,6 +79,7 @@ suite =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Authorization", "Basic ${AUTH_TOKEN}" )
                     ]
+                , auth = Nothing
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
@@ -107,6 +110,7 @@ suite =
                     [ ( "accept-language", "${PREFERRED_LANGUAGE};q=0.9" )
                     , ( "Authorization", "Basic ${AUTH_TOKEN}" )
                     ]
+                , auth = Nothing
                 }
                     |> toRequest
                     |> DataSourceGenerator.generate
@@ -129,6 +133,45 @@ suite =
             |> Secrets.with "AUTH_TOKEN"
         )
         decoder"""
+        , test "with Basic Auth" <|
+            \() ->
+                { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
+                , method = Request.GET
+                , body = Request.Empty
+                , headers =
+                    [ ( "Content-Type", "application/json" )
+                    ]
+                , auth =
+                    Request.BasicAuth
+                        { username = "${MUX_TOKEN_ID}" |> InterpolatedField.fromString
+                        , password = "${MUX_TOKEN_SECRET}" |> InterpolatedField.fromString
+                        }
+                        |> Just
+                }
+                    |> toRequest
+                    |> DataSourceGenerator.generate
+                    |> Elm.declarationToString
+                    |> Expect.equal
+                        """data =
+    DataSource.Http.request
+        (Pages.Secrets.succeed
+            (\\muxTokenId muxTokenSecret assetId ->
+                { url = "https://api.mux.com/video/v1/assets/" ++ assetId
+                , method = "GET"
+                , headers =
+                    [ ( "Authorization"
+                      , Base64.encode (muxTokenId ++ ":" ++ muxTokenSecret)
+                      )
+                    , ( "Content-Type", "application/json" )
+                    ]
+                , body = DataSource.Http.emptyBody
+                }
+            )
+            |> Secrets.with "MUX_TOKEN_ID"
+            |> Secrets.with "MUX_TOKEN_SECRET"
+            |> Secrets.with "ASSET_ID"
+        )
+        decoder"""
         ]
 
 
@@ -137,10 +180,11 @@ toRequest :
     , method : Request.Method
     , body : Request.Body
     , headers : List ( String, String )
+    , auth : Maybe Request.Auth
     }
     -> Request
 toRequest request =
-    { url = request.url
+    { url = request.url |> InterpolatedField.fromString
     , method = request.method
     , body = request.body
     , headers =
@@ -152,4 +196,5 @@ toRequest request =
                     )
                 )
     , timeout = Nothing
+    , auth = request.auth
     }

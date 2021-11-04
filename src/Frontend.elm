@@ -202,6 +202,15 @@ update msg model =
             , Cmd.none
             )
 
+        AuthChanged maybeAuth ->
+            ( model
+                |> updateCurrentRequest
+                    (\req ->
+                        { req | auth = maybeAuth }
+                    )
+            , Cmd.none
+            )
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =

@@ -37,6 +37,7 @@ type FrontendMsg
     | DeleteVariable String
     | RequestHeadersChanged String
     | RequestBodyChanged String
+    | AuthChanged (Maybe Request.Auth)
     | RequestExecClicked
     | ResetDecoder
     | JsonAddField (List String) String JsonValue

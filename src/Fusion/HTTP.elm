@@ -42,6 +42,7 @@ emptyRequest =
     , url = "https://jsonplaceholder.typicode.com/posts/1" |> InterpolatedField.fromString
     , body = Request.StringBody "application/x-www-form-urlencoded" ""
     , timeout = Nothing
+    , auth = Nothing
     }
 
 
@@ -151,6 +152,47 @@ variableView variables unreferencedVariables variableName =
         ]
 
 
+authView : Maybe Request.Auth -> Element Msg
+authView maybeAuth =
+    -- TODO button to toggle between different auth types (for now just Basic or None)
+    column []
+        [ row []
+            [ buttonHilightOn (maybeAuth == Nothing) [] (AuthChanged Nothing) "None"
+            , buttonHilightOn
+                (case maybeAuth of
+                    Just (Request.BasicAuth _) ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (AuthChanged (Just (Request.BasicAuth { username = "" |> InterpolatedField.fromString, password = "" |> InterpolatedField.fromString })))
+                "Basic"
+            ]
+        , case maybeAuth of
+            Just (Request.BasicAuth basicAuth) ->
+                column [ width fill ]
+                    [ Input.text [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | username = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.username |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Username")
+                        }
+                    , Input.currentPassword [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | password = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.password |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , show = True
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Password")
+                        }
+                    ]
+
+            Nothing ->
+                column [] []
+        ]
+
+
 toHttpMethod : Fusion.Types.RequestMethod -> String
 toHttpMethod method =
     case method of
@@ -253,6 +295,7 @@ view model =
             , label = Input.labelHidden "request body input"
             , spellcheck = False
             }
+        , authView model.currentRequest.auth
         , el
             [ onClick RequestExecClicked
             , Background.color grey

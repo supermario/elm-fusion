@@ -6,6 +6,7 @@ import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Dict
 import InterpolatedField
+import Maybe.Extra
 import Regex exposing (Regex)
 import Request exposing (Request)
 
@@ -79,7 +80,7 @@ removeLeadingSpace string =
 curl : OptionsParser Request Cli.OptionsParser.BuilderState.NoMoreOptions
 curl =
     OptionsParser.build
-        (\url data compressed header headers2 ->
+        (\url data compressed header headers2 user1 user2 method ->
             let
                 headers : Dict.Dict String String
                 headers =
@@ -90,7 +91,21 @@ curl =
             { url = url |> InterpolatedField.fromString
             , method =
                 if data == [] then
-                    Request.GET
+                    method
+                        |> Maybe.map
+                            (\justMethod ->
+                                case justMethod |> String.toUpper of
+                                    "GET" ->
+                                        Request.GET
+
+                                    "POST" ->
+                                        Request.POST
+
+                                    _ ->
+                                        Request.GET
+                            )
+                        |> Maybe.withDefault
+                            Request.GET
 
                 else
                     Request.POST
@@ -113,7 +128,6 @@ curl =
                         contentType =
                             headers
                                 |> Dict.get "Content-Type"
-                                |> Debug.log "Content-Type"
                                 |> Maybe.withDefault "application/x-www-form-urlencoded"
                     in
                     data
@@ -122,6 +136,21 @@ curl =
                             -- TODO handle content-type's besides JSON
                             contentType
             , timeout = Nothing
+            , auth =
+                Maybe.Extra.or user2 user1
+                    |> Maybe.andThen
+                        (\basicAuthString ->
+                            case basicAuthString |> String.split ":" of
+                                [ username, password ] ->
+                                    Request.BasicAuth
+                                        { username = username |> InterpolatedField.fromString
+                                        , password = password |> InterpolatedField.fromString
+                                        }
+                                        |> Just
+
+                                _ ->
+                                    Nothing
+                        )
             }
         )
         |> OptionsParser.with (Option.requiredPositionalArg "url")
@@ -129,4 +158,7 @@ curl =
         |> OptionsParser.with (Option.flag "compressed")
         |> OptionsParser.with (Option.keywordArgList "header")
         |> OptionsParser.with (Option.keywordArgList "H")
+        |> OptionsParser.with (Option.optionalKeywordArg "u")
+        |> OptionsParser.with (Option.optionalKeywordArg "user")
+        |> OptionsParser.with (Option.optionalKeywordArg "X")
         |> OptionsParser.end

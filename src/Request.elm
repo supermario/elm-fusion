@@ -1,5 +1,6 @@
-module Request exposing (Body(..), Method(..), Request, convert, methodToString, referencedVariables)
+module Request exposing (Auth(..), Body(..), Method(..), Request, convert, methodToString, referencedVariables)
 
+import Base64
 import Dict exposing (Dict)
 import Fusion.Types
 import Http
@@ -12,15 +13,14 @@ type alias Request =
     , url : InterpolatedField
     , body : Body
     , timeout : Maybe Float
-
-    --, auth : Maybe Auth
+    , auth : Maybe Auth
     }
 
 
 type Auth
     = BasicAuth
-        { username : String
-        , password : String
+        { username : InterpolatedField
+        , password : InterpolatedField
         }
 
 
@@ -36,6 +36,23 @@ type Body
 
 convert : Dict String String -> Request -> Fusion.Types.Request
 convert variables request =
+    let
+        authHeaders : List Http.Header
+        authHeaders =
+            case request.auth of
+                Just (BasicAuth basicAuth) ->
+                    [ Http.header
+                        "Authorization"
+                        (("Basic "
+                            ++ Base64.encode (InterpolatedField.interpolate variables basicAuth.username ++ ":" ++ InterpolatedField.interpolate variables basicAuth.password)
+                         )
+                            |> Debug.log "Authorization header"
+                        )
+                    ]
+
+                _ ->
+                    []
+    in
     { headers =
         request.headers
             |> List.map
@@ -44,6 +61,7 @@ convert variables request =
                         (InterpolatedField.interpolate variables key)
                         (InterpolatedField.interpolate variables value)
                 )
+            |> List.append authHeaders
     , body = Fusion.Types.Empty
     , url = request.url |> InterpolatedField.interpolate variables
     , method =
@@ -75,3 +93,11 @@ referencedVariables request =
                 InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
             )
         |> List.append (InterpolatedField.referencedVariables request.url)
+        |> List.append (request.auth |> Maybe.map authReferencedVariables |> Maybe.withDefault [])
+
+
+authReferencedVariables : Auth -> List InterpolatedField.Variable
+authReferencedVariables auth =
+    case auth of
+        BasicAuth basic ->
+            InterpolatedField.referencedVariables basic.username ++ InterpolatedField.referencedVariables basic.password

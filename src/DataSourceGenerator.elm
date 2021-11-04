@@ -13,6 +13,26 @@ import Request exposing (Request)
 generate : Request -> Elm.Declaration
 generate request =
     let
+        authHeaders : List Elm.Expression
+        authHeaders =
+            case request.auth of
+                Just (Request.BasicAuth basicAuth) ->
+                    [ Elm.tuple
+                        (Elm.string "Authorization")
+                        (Elm.apply (Elm.value "Base64.encode")
+                            [ Elm.append
+                                (Elm.append
+                                    (InterpolatedField.toElmExpression basicAuth.username)
+                                    (Elm.string ":")
+                                )
+                                (InterpolatedField.toElmExpression basicAuth.password)
+                            ]
+                        )
+                    ]
+
+                _ ->
+                    []
+
         requestRecordExpression : Elm.Expression
         requestRecordExpression =
             Elm.record
@@ -26,6 +46,7 @@ generate request =
                                     (InterpolatedField.toElmExpression key)
                                     (InterpolatedField.toElmExpression value)
                             )
+                        |> List.append authHeaders
                         |> Elm.list
                     )
                 , Elm.field "body" (bodyGenerator request)
