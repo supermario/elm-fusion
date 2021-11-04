@@ -203,11 +203,6 @@ toHttpMethod method =
             "POST"
 
 
-newRaw : String -> Model -> Model
-newRaw string model =
-    { model | rawString = string }
-
-
 guessElmTypeForJsonValue jv =
     case jv of
         JInt int ->
@@ -272,6 +267,14 @@ view model =
         , row [ spacing 5 ]
             [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
             , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
+            , el
+                [ onClick MakeRequestClicked
+                , Background.color green
+                , padding 10
+                , pointer
+                ]
+              <|
+                text "Make Request"
             ]
         , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
@@ -296,14 +299,6 @@ view model =
             , spellcheck = False
             }
         , authView model.currentRequest.auth
-        , el
-            [ onClick RequestExecClicked
-            , Background.color grey
-            , padding 10
-            , pointer
-            ]
-          <|
-            text "Exec"
         , paragraph []
             [ case model.httpRequest of
                 NotAsked ->
@@ -321,10 +316,9 @@ view model =
 
         -- , paragraph [] [ text <| toString model.currentRequest ]
         , paragraph [] [ text <| toString model.fusionDecoder ]
-        , paragraph [] [ text <| model.rawString ]
         , case model.httpRequest of
             Success string ->
-                case D.decodeString decodeJsonAst model.rawString of
+                case D.decodeString decodeJsonAst string of
                     Ok ast ->
                         column [ width fill, spacing 10 ]
                             [ row [ width fill, spacing 20 ]
@@ -345,7 +339,12 @@ view model =
                             ]
 
                     Err err ->
-                        text <| D.errorToString err
+                        column [ spacing 10 ]
+                            [ paragraph [] [ text <| "I got a valid response: " ]
+                            , el [ Font.family [ Font.monospace ] ] <| text string
+                            , paragraph [] [ text "But failed to decode it into JSON:" ]
+                            , text <| D.errorToString err
+                            ]
 
             _ ->
                 none
@@ -416,7 +415,7 @@ elmHttpCodeGen model =
 import Json.Decode as D
 import Json.Decode.Pipeline exposing (required)
 
-   
+
 """
         ++ (model.currentRequest
                 |> ElmHttpGenerator.generate

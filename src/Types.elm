@@ -16,7 +16,6 @@ type alias FrontendModel =
     , page : Page
 
     -- Fusion
-    , rawString : String
     , rawHeaders : String
     , fusionDecoder : FusionDecoder
     , currentRequest : Request.Request
@@ -38,7 +37,7 @@ type FrontendMsg
     | RequestHeadersChanged String
     | RequestBodyChanged String
     | AuthChanged (Maybe Request.Auth)
-    | RequestExecClicked
+    | MakeRequestClicked
     | ResetDecoder
     | JsonAddField (List String) String JsonValue
     | JsonAddAll (List String) JsonValue
@@ -52,7 +51,7 @@ type CodeGenMode
 
 
 type ToBackend
-    = RequestExecClicked_ (Dict String String) Request.Request
+    = MakeRequestClicked_ (Dict String String) Request.Request
     | NoOpToBackend
 
 
@@ -69,6 +68,5 @@ type BackendMsg
 
 
 type ToFrontend
-    = FusionHttpTarget String
-    | RequestExecResult_ (Result HttpError String)
+    = RequestExecResult_ (Result HttpError String)
     | NoOpToFrontend

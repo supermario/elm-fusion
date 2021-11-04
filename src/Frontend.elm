@@ -23,6 +23,7 @@ import OAuth.AuthorizationCode as OAuth
 import Page
 import RemoteData exposing (RemoteData(..))
 import Request
+import Stub
 import Types exposing (..)
 import Url exposing (Protocol(..), Url)
 
@@ -51,11 +52,12 @@ init : Url.Url -> Navigation.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
       , page = Page.pathToPage url
-      , rawString = ""
       , rawHeaders = ""
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
-      , httpRequest = NotAsked
+
+      -- , httpRequest = NotAsked
+      , httpRequest = Stub.basicJson
       , codeGenMode = ElmPages
       , variables = Dict.empty
       }
@@ -159,8 +161,8 @@ update msg model =
             , Cmd.none
             )
 
-        RequestExecClicked ->
-            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (RequestExecClicked_ model.variables model.currentRequest) )
+        MakeRequestClicked ->
+            ( { model | httpRequest = Loading }, sendToBackend (MakeRequestClicked_ model.variables model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
@@ -215,13 +217,10 @@ update msg model =
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
     case msg of
-        FusionHttpTarget string ->
-            ( model |> Fusion.HTTP.newRaw string, Cmd.none )
-
         RequestExecResult_ res ->
             case res of
                 Ok string ->
-                    ( { model | rawString = string, httpRequest = RemoteData.fromResult res }
+                    ( { model | httpRequest = RemoteData.fromResult res }
                     , Cmd.none
                     )
 
