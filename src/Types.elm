@@ -16,7 +16,6 @@ type alias FrontendModel =
     , page : Page
 
     -- Fusion
-    , rawString : String
     , rawHeaders : String
     , fusionDecoder : FusionDecoder
     , currentRequest : Request.Request
@@ -65,6 +64,5 @@ type BackendMsg
 
 
 type ToFrontend
-    = FusionHttpTarget String
-    | RequestExecResult_ (Result HttpError String)
+    = RequestExecResult_ (Result HttpError String)
     | NoOpToFrontend
