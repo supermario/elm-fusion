@@ -7,7 +7,7 @@ import Request exposing (Request)
 
 generate : Request -> String
 generate request =
-    if List.isEmpty (request.headers |> Debug.log "headers") then
+    if List.isEmpty request.headers then
         """
 request toMsg =
     Http.get
