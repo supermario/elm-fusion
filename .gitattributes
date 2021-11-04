@@ -1,2 +1,3 @@
 generators/**/* linguist-generated=true
-
+elm-prefab/**/* linguist-generated=true
+elm-cli-options-parser/**/* linguist-generated=true
