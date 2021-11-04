@@ -316,7 +316,7 @@ import Json.Decode as D
 import Json.Decode.Pipeline exposing (required)
 
    
-   """
+"""
         ++ (model.currentRequest
                 |> ElmHttpGenerator.generate
                 |> Elm.declarationToString
