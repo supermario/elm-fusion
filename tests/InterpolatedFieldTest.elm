@@ -1,5 +1,6 @@
 module InterpolatedFieldTest exposing (..)
 
+import Elm
 import Expect
 import InterpolatedField
 import Parser exposing ((|.), (|=), Parser)
@@ -39,7 +40,8 @@ suite =
                 \() ->
                     "Hello ${NAME}!"
                         |> InterpolatedField.fromString
-                        |> InterpolatedField.toElmString
+                        |> InterpolatedField.toElmExpression
+                        |> Elm.toString
                         |> Expect.equal
                             """"Hello " ++ name ++ "!\""""
             ]

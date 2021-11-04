@@ -1,4 +1,4 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmString, toElmVar, toString, tokenParser, variableName)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmVar, toString, tokenParser, variableName)
 
 import Dict exposing (Dict)
 import Elm
@@ -95,27 +95,6 @@ interpolationField =
 
 type InterpolationField
     = InterpolationField String
-
-
-toElmString : InterpolatedField -> String
-toElmString (InterpolatedField raw) =
-    case Parser.run fieldParser raw of
-        Ok contents ->
-            contents
-                |> List.map
-                    (\value ->
-                        case value of
-                            RawText rawText ->
-                                escapedAndQuoted rawText
-
-                            InterpolatedText (Variable name) ->
-                                name |> String.toLower |> String.Extra.camelize
-                    )
-                |> String.join " ++ "
-
-        -- TODO only add parens if more than 1? Or leave that up to the calling code?
-        Err error ->
-            "TODO"
 
 
 toElmExpression : InterpolatedField -> Elm.Expression
