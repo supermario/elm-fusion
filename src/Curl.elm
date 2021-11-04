@@ -80,7 +80,7 @@ removeLeadingSpace string =
 curl : OptionsParser Request Cli.OptionsParser.BuilderState.NoMoreOptions
 curl =
     OptionsParser.build
-        (\url data compressed header headers2 user1 user2 method ->
+        (\url data compressed header headers2 user1 user2 method1 method2 ->
             let
                 headers : Dict.Dict String String
                 headers =
@@ -91,7 +91,7 @@ curl =
             { url = url |> InterpolatedField.fromString
             , method =
                 if data == [] then
-                    method
+                    Maybe.Extra.or method1 method2
                         |> Maybe.map
                             (\justMethod ->
                                 case justMethod |> String.toUpper of
@@ -161,4 +161,5 @@ curl =
         |> OptionsParser.with (Option.optionalKeywordArg "u")
         |> OptionsParser.with (Option.optionalKeywordArg "user")
         |> OptionsParser.with (Option.optionalKeywordArg "X")
+        |> OptionsParser.with (Option.optionalKeywordArg "request")
         |> OptionsParser.end
