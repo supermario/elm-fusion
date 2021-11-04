@@ -2,11 +2,13 @@ module Fusion.HTTP exposing (..)
 
 import Colors exposing (..)
 import DataSourceGenerator
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Element.Lazy
 import Elm
 import ElmHttpGenerator
 import Fusion.Json
@@ -56,12 +58,12 @@ emptyRequest =
 --         }
 
 
-toHttpRequestTask : Request -> Task HttpError String
-toHttpRequestTask request =
+toHttpRequestTask : Dict String String -> Request -> Task HttpError String
+toHttpRequestTask variables request =
     let
         req : Fusion.Types.Request
         req =
-            Request.convert request
+            Request.convert variables request
     in
     Http.task
         { method = toHttpMethod req.method
@@ -93,6 +95,46 @@ toHttpBody body =
 
         Fusion.Types.MultiPart parts ->
             todo "MultiPart toHttpBody" Http.emptyBody
+
+
+variablesView : Dict String String -> Request -> Element Msg
+variablesView variables request =
+    let
+        referencedVariables : List String
+        referencedVariables =
+            Request.referencedVariables request
+                |> List.map InterpolatedField.rawVariableName
+
+        definedVariables : List String
+        definedVariables =
+            variables
+                |> Dict.keys
+
+        allVariables : List String
+        allVariables =
+            (referencedVariables ++ definedVariables)
+                |> List.unique
+    in
+    if allVariables |> List.isEmpty then
+        text ""
+
+    else
+        column [ width fill, spacing 5 ]
+            (el [ Font.size 16, paddingXY 0 10 ] (text "Variables")
+                :: (allVariables
+                        |> List.map (variableView variables)
+                   )
+            )
+
+
+variableView : Dict String String -> String -> Element Msg
+variableView variables variableName =
+    Input.text [ padding 5 ]
+        { onChange = \value -> VariableUpdated { name = variableName, value = value }
+        , text = variables |> Dict.get variableName |> Maybe.withDefault ""
+        , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
+        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+        }
 
 
 toHttpMethod : Fusion.Types.RequestMethod -> String
@@ -170,7 +212,8 @@ fusionAddField fieldName jv decoder =
 view : Model -> Element Msg
 view model =
     column [ width fill, spacing 10 ]
-        [ row [ spacing 5 ]
+        [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
+        , row [ spacing 5 ]
             [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
             , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
             ]

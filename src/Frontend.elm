@@ -57,6 +57,7 @@ init url key =
       , currentRequest = Fusion.HTTP.emptyRequest
       , httpRequest = NotAsked
       , codeGenMode = ElmPages
+      , variables = Dict.empty
       }
     , Cmd.none
     )
@@ -159,7 +160,7 @@ update msg model =
             )
 
         RequestExecClicked ->
-            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (RequestExecClicked_ model.currentRequest) )
+            ( { model | rawString = "", httpRequest = Loading }, sendToBackend (RequestExecClicked_ model.variables model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
@@ -190,6 +191,9 @@ update msg model =
 
         CodeGenModeChanged codeGenMode ->
             ( { model | codeGenMode = codeGenMode }, Cmd.none )
+
+        VariableUpdated variableUpdate ->
+            ( { model | variables = model.variables |> Dict.update variableUpdate.name (\_ -> Just variableUpdate.value) }, Cmd.none )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )

@@ -1,6 +1,6 @@
 module Request exposing (Body(..), Method(..), Request, convert, methodToString, referencedVariables)
 
-import Dict
+import Dict exposing (Dict)
 import Fusion.Types
 import Http
 import InterpolatedField exposing (InterpolatedField)
@@ -34,18 +34,18 @@ type Body
     | StringBody String String
 
 
-convert : Request -> Fusion.Types.Request
-convert request =
+convert : Dict String String -> Request -> Fusion.Types.Request
+convert variables request =
     { headers =
         request.headers
             |> List.map
                 (\( key, value ) ->
                     Http.header
-                        (InterpolatedField.interpolate Dict.empty key)
-                        (InterpolatedField.interpolate Dict.empty value)
+                        (InterpolatedField.interpolate variables key)
+                        (InterpolatedField.interpolate variables value)
                 )
     , body = Fusion.Types.Empty
-    , url = request.url |> InterpolatedField.interpolate Dict.empty
+    , url = request.url |> InterpolatedField.interpolate variables
     , method =
         case request.method of
             GET ->

@@ -55,7 +55,7 @@ generate request =
                 secretsPipeline : Elm.Expression
                 secretsPipeline =
                     variables
-                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.variableName variable) ])
+                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.rawVariableName variable) ])
                         |> List.NonEmpty.cons requestLambda
                         |> List.NonEmpty.foldr1 Elm.pipe
             in
