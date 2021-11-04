@@ -1,85 +1,88 @@
 module DataSourceGenerator exposing (..)
 
-import Dict
+import Elm
+import Elm.Annotation
+import Elm.Gen.DataSource.Http
+import Elm.Gen.Pages.Secrets
+import Elm.Pattern
 import InterpolatedField
+import List.NonEmpty
 import Request exposing (Request)
 
 
-generate : Request -> String
+generate : Request -> Elm.Declaration
 generate request =
     let
-        referencedVariables : List String
+        referencedVariables : Maybe (List.NonEmpty.NonEmpty InterpolatedField.Variable)
         referencedVariables =
             request.headers
                 |> List.concatMap
                     (\( key, value ) ->
                         InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
                     )
-                |> List.map InterpolatedField.variableName
+                |> List.NonEmpty.fromList
 
-        innerPart =
-            """            { url = \""""
-                ++ request.url
-                ++ """"
-            , method = \""""
-                ++ Request.methodToString request.method
-                ++ """"
-            , headers =
-                [ """
-                ++ (request.headers
+        requestRecordExpression : Elm.Expression
+        requestRecordExpression =
+            Elm.record
+                [ Elm.field "url" (Elm.string request.url)
+                , Elm.field "method" (request.method |> Request.methodToString |> Elm.string)
+                , Elm.field "headers"
+                    (request.headers
                         |> List.map
                             (\( key, value ) ->
-                                "( "
-                                    ++ InterpolatedField.toElmString key
-                                    ++ ", "
-                                    ++ InterpolatedField.toElmString value
-                                    ++ " )"
+                                Elm.tuple
+                                    (InterpolatedField.toElmExpression key)
+                                    (InterpolatedField.toElmExpression value)
                             )
-                        |> String.join "\n                , "
-                   )
-                ++ """
+                        |> Elm.list
+                    )
+                , Elm.field "body" (bodyGenerator request)
                 ]
-            , body = """
-                ++ bodyGenerator request
-                ++ """
-            }"""
     in
-    """
-data =
-    DataSource.Http.request
-        (Secrets.succeed
-"""
-        ++ (if List.isEmpty referencedVariables then
-                innerPart
+    (case referencedVariables of
+        Nothing ->
+            Elm.Gen.DataSource.Http.request
+                (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
+                (Elm.value "decoder")
 
-            else
-                """            (\\authToken ->
-"""
-                    ++ indent innerPart
-                    ++ "\n            )\n"
-                    ++ (List.map (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName) referencedVariables |> String.join "\n")
-           )
-        ++ """
-        )
-"""
+        Just variables ->
+            let
+                lambdaVars : List ( Elm.Pattern.Pattern, Elm.Annotation.Annotation )
+                lambdaVars =
+                    variables
+                        |> List.NonEmpty.map (\variable -> ( InterpolatedField.toElmVar variable, Elm.Annotation.string ))
+                        |> List.NonEmpty.toList
+
+                requestLambda : Elm.Expression
+                requestLambda =
+                    Elm.lambdaWith
+                        lambdaVars
+                        requestRecordExpression
+                        |> Elm.Gen.Pages.Secrets.succeed
+
+                secretsPipeline : Elm.Expression
+                secretsPipeline =
+                    variables
+                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.variableName variable) ])
+                        |> List.NonEmpty.cons requestLambda
+                        |> List.NonEmpty.foldr1 Elm.pipe
+            in
+            Elm.Gen.DataSource.Http.request
+                secretsPipeline
+                (Elm.value "decoder")
+    )
+        |> Elm.declaration "data"
 
 
-bodyGenerator : Request -> String
+bodyGenerator : Request -> Elm.Expression
 bodyGenerator request =
     case request.body of
         Request.Empty ->
-            """DataSource.Http.emptyBody"""
+            Elm.Gen.DataSource.Http.emptyBody
 
         Request.StringBody contentType body ->
-            "DataSource.Http.stringBody "
-                ++ escapedAndQuoted contentType
-                ++ " "
-                ++ escapedAndQuoted body
-
-
-escapedAndQuoted : String -> String
-escapedAndQuoted string =
-    "\"" ++ (string |> String.replace "\"" "\\\"") ++ "\""
+            Elm.Gen.DataSource.Http.stringBody (Elm.string contentType) (Elm.string body)
 
 
 indent : String -> String

@@ -1,10 +1,11 @@
 module ElmHttpGeneratorTest exposing (suite)
 
+import Elm
 import ElmHttpGenerator
 import Expect
 import InterpolatedField
 import Request exposing (Request)
-import Test exposing (Test, describe, only, test)
+import Test exposing (Test, describe, test)
 
 
 suite : Test
@@ -20,14 +21,11 @@ suite =
                 }
                     |> toRequest
                     |> ElmHttpGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
-                        """
-request toMsg =
+                        """request toMsg =
     Http.get
-        { url = "https://example.com"
-        , expect = Http.expectJson toMsg decoder
-        }
-"""
+        { url = "https://example.com", expect = Http.expectJson toMsg decoder }"""
         , test "GET with headers" <|
             \() ->
                 { url = "https://example.com"
@@ -40,9 +38,9 @@ request toMsg =
                 }
                     |> toRequest
                     |> ElmHttpGenerator.generate
+                    |> Elm.declarationToString
                     |> Expect.equal
-                        """
-request toMsg =
+                        """request toMsg =
     Http.request
         { method = "GET"
         , headers =
@@ -54,8 +52,7 @@ request toMsg =
         , expect = Http.expectJson toMsg decoder
         , timeout = Nothing
         , tracker = Nothing
-        }
-"""
+        }"""
         ]
 
 

@@ -1,6 +1,9 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmString, toString, tokenParser, variableName)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmVar, toString, tokenParser, variableName)
 
 import Dict exposing (Dict)
+import Elm
+import Elm.Pattern
+import List.NonEmpty
 import Parser exposing ((|.), (|=), Parser)
 import String.Extra
 
@@ -94,8 +97,8 @@ type InterpolationField
     = InterpolationField String
 
 
-toElmString : InterpolatedField -> String
-toElmString (InterpolatedField raw) =
+toElmExpression : InterpolatedField -> Elm.Expression
+toElmExpression (InterpolatedField raw) =
     case Parser.run fieldParser raw of
         Ok contents ->
             contents
@@ -103,16 +106,22 @@ toElmString (InterpolatedField raw) =
                     (\value ->
                         case value of
                             RawText rawText ->
-                                escapedAndQuoted rawText
+                                Elm.string rawText
 
                             InterpolatedText (Variable name) ->
-                                name |> String.toLower |> String.Extra.camelize
+                                name |> String.toLower |> String.Extra.camelize |> Elm.value
                     )
-                |> String.join " ++ "
+                |> List.NonEmpty.fromList
+                |> Maybe.withDefault (List.NonEmpty.singleton (Elm.string ""))
+                |> List.NonEmpty.foldr1 Elm.append
 
-        -- TODO only add parens if more than 1? Or leave that up to the calling code?
         Err error ->
-            "TODO"
+            Elm.string "TODO"
+
+
+toElmVar : Variable -> Elm.Pattern.Pattern
+toElmVar (Variable rawName) =
+    rawName |> String.toLower |> String.Extra.camelize |> Elm.Pattern.var
 
 
 referencedVariables : InterpolatedField -> List Variable
