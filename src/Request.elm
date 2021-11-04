@@ -1,16 +1,27 @@
 module Request exposing (Body(..), Method(..), Request, convert, methodToString)
 
+import Dict
 import Fusion.Types
 import Http
+import InterpolatedField exposing (InterpolatedField)
 
 
 type alias Request =
     { method : Method
-    , headers : List ( String, String )
+    , headers : List ( InterpolatedField, InterpolatedField )
     , url : String
     , body : Body
     , timeout : Maybe Float
+
+    --, auth : Maybe Auth
     }
+
+
+type Auth
+    = BasicAuth
+        { username : String
+        , password : String
+        }
 
 
 type Method
@@ -25,7 +36,14 @@ type Body
 
 convert : Request -> Fusion.Types.Request
 convert request =
-    { headers = request.headers |> List.map (\( key, value ) -> Http.header key value)
+    { headers =
+        request.headers
+            |> List.map
+                (\( key, value ) ->
+                    Http.header
+                        (InterpolatedField.interpolate Dict.empty key)
+                        (InterpolatedField.interpolate Dict.empty value)
+                )
     , body = Fusion.Types.Empty
     , url = request.url
     , method =

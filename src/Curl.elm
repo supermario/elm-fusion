@@ -5,6 +5,7 @@ import Cli.OptionsParser as OptionsParser exposing (OptionsParser)
 import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Dict
+import InterpolatedField
 import Regex exposing (Regex)
 import Request exposing (Request)
 
@@ -96,6 +97,12 @@ curl =
             , headers =
                 headers
                     |> Dict.toList
+                    |> List.map
+                        (\( key, value ) ->
+                            ( key |> InterpolatedField.fromString
+                            , value |> InterpolatedField.fromString
+                            )
+                        )
             , body =
                 if data == [] then
                     Request.Empty

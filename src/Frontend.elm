@@ -15,6 +15,7 @@ import Fusion.Types exposing (..)
 import Helpers exposing (..)
 import Html
 import Http
+import InterpolatedField
 import Json.Decode as Json
 import Lamdera exposing (..)
 import OAuth
@@ -110,7 +111,7 @@ update msg model =
                 Just parsedCurlRequest ->
                     { model
                         | currentRequest = parsedCurlRequest
-                        , rawHeaders = parsedCurlRequest.headers |> List.map (\( key, value ) -> key ++ ": " ++ value) |> String.join "\n"
+                        , rawHeaders = parsedCurlRequest.headers |> List.map (\( key, value ) -> InterpolatedField.toString key ++ ": " ++ InterpolatedField.toString value) |> String.join "\n"
                     }
 
                 Nothing ->
@@ -134,7 +135,10 @@ update msg model =
                                         (\s_ ->
                                             case String.split ":" s_ of
                                                 n :: v :: _ ->
-                                                    Just ( String.trim n, String.trim v )
+                                                    Just
+                                                        ( String.trim n |> InterpolatedField.fromString
+                                                        , String.trim v |> InterpolatedField.fromString
+                                                        )
 
                                                 _ ->
                                                     Nothing

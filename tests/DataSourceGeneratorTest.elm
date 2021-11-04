@@ -2,7 +2,8 @@ module DataSourceGeneratorTest exposing (..)
 
 import DataSourceGenerator
 import Expect
-import Request
+import InterpolatedField
+import Request exposing (Request)
 import Test exposing (Test, describe, test)
 
 
@@ -18,8 +19,8 @@ suite =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
                     ]
-                , timeout = Nothing
                 }
+                    |> toRequest
                     |> DataSourceGenerator.generate
                     |> Expect.equal
                         """
@@ -45,8 +46,8 @@ data =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
                     ]
-                , timeout = Nothing
                 }
+                    |> toRequest
                     |> DataSourceGenerator.generate
                     |> Expect.equal
                         """
@@ -64,3 +65,26 @@ data =
         )
 """
         ]
+
+
+toRequest :
+    { url : String
+    , method : Request.Method
+    , body : Request.Body
+    , headers : List ( String, String )
+    }
+    -> Request
+toRequest request =
+    { url = request.url
+    , method = request.method
+    , body = request.body
+    , headers =
+        request.headers
+            |> List.map
+                (\( key, value ) ->
+                    ( InterpolatedField.fromString key
+                    , InterpolatedField.fromString value
+                    )
+                )
+    , timeout = Nothing
+    }

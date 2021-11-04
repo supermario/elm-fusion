@@ -1,5 +1,7 @@
 module DataSourceGenerator exposing (..)
 
+import Dict
+import InterpolatedField
 import Request exposing (Request)
 
 
@@ -18,7 +20,14 @@ data =
             , headers =
                 [ """
         ++ (request.headers
-                |> List.map (\( key, value ) -> "( \"" ++ key ++ "\", \"" ++ value ++ "\" )")
+                |> List.map
+                    (\( key, value ) ->
+                        "( \""
+                            ++ InterpolatedField.interpolate Dict.empty key
+                            ++ "\", \""
+                            ++ InterpolatedField.interpolate Dict.empty value
+                            ++ "\" )"
+                    )
                 |> String.join "\n                , "
            )
         ++ """

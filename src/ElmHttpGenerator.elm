@@ -1,11 +1,13 @@
 module ElmHttpGenerator exposing (generate)
 
+import Dict
+import InterpolatedField
 import Request exposing (Request)
 
 
 generate : Request -> String
 generate request =
-    if List.isEmpty request.headers then
+    if List.isEmpty (request.headers |> Debug.log "headers") then
         """
 request toMsg =
     Http.get
@@ -23,7 +25,16 @@ request toMsg =
             ++ """
         , headers =
             [ """
-            ++ (request.headers |> List.map (\( key, value ) -> "Http.header " ++ escapedAndQuoted key ++ " " ++ escapedAndQuoted value) |> String.join "\n            , ")
+            ++ (request.headers
+                    |> List.map
+                        (\( key, value ) ->
+                            "Http.header "
+                                ++ escapedAndQuoted (InterpolatedField.interpolate Dict.empty key)
+                                ++ " "
+                                ++ escapedAndQuoted (InterpolatedField.interpolate Dict.empty value)
+                        )
+                    |> String.join "\n            , "
+               )
             ++ """
             ]
         , url = """

@@ -4,6 +4,7 @@ import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Curl exposing (runCurl)
 import Dict
 import Expect exposing (Expectation)
+import InterpolatedField
 import Request exposing (Request)
 import Test exposing (..)
 
@@ -27,6 +28,7 @@ expectRequest expected actual =
                         expected.headers
                             |> Dict.fromList
                             |> Dict.toList
+                            |> List.map (Tuple.mapFirst InterpolatedField.fromString >> Tuple.mapSecond InterpolatedField.fromString)
                     , timeout = Nothing
                     , body = expected.body
                     }
