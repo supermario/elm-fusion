@@ -32,7 +32,8 @@
             "rtfeldman/elm-hex": "1.0.0",
             "stil4m/elm-syntax": "7.2.8",
             "the-sett/elm-pretty-printer": "3.0.0",
-            "truqu/elm-oauth2": "7.0.1"
+            "truqu/elm-oauth2": "7.0.1",
+            "turboMaCk/non-empty-list-alias": "1.1.0"
         },
         "indirect": {
             "chelovek0v/bbase64": "1.0.1",

@@ -1,6 +1,9 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmString, toString, tokenParser, variableName)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmString, toString, tokenParser, variableName)
 
 import Dict exposing (Dict)
+import Elm
+import Elm.Pattern
+import List.NonEmpty
 import Parser exposing ((|.), (|=), Parser)
 import String.Extra
 
@@ -113,6 +116,28 @@ toElmString (InterpolatedField raw) =
         -- TODO only add parens if more than 1? Or leave that up to the calling code?
         Err error ->
             "TODO"
+
+
+toElmExpression : InterpolatedField -> Elm.Expression
+toElmExpression (InterpolatedField raw) =
+    case Parser.run fieldParser raw of
+        Ok contents ->
+            contents
+                |> List.map
+                    (\value ->
+                        case value of
+                            RawText rawText ->
+                                Elm.string rawText
+
+                            InterpolatedText (Variable name) ->
+                                name |> String.toLower |> String.Extra.camelize |> Elm.value
+                    )
+                |> List.NonEmpty.fromList
+                |> Maybe.withDefault (List.NonEmpty.singleton (Elm.string ""))
+                |> List.NonEmpty.foldr1 Elm.append
+
+        Err error ->
+            Elm.string "TODO"
 
 
 referencedVariables : InterpolatedField -> List Variable

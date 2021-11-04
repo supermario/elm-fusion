@@ -19,32 +19,24 @@ generate request =
                     )
                 |> List.map InterpolatedField.variableName
 
-        innerPart =
-            """            { url = \""""
-                ++ request.url
-                ++ """"
-            , method = \""""
-                ++ Request.methodToString request.method
-                ++ """"
-            , headers =
-                [ """
-                ++ (request.headers
+        requestRecord : String
+        requestRecord =
+            Elm.record
+                [ Elm.field "url" (Elm.string request.url)
+                , Elm.field "method" (request.method |> Request.methodToString |> Elm.string)
+                , Elm.field "headers"
+                    (request.headers
                         |> List.map
                             (\( key, value ) ->
-                                "( "
-                                    ++ InterpolatedField.toElmString key
-                                    ++ ", "
-                                    ++ InterpolatedField.toElmString value
-                                    ++ " )"
+                                Elm.tuple
+                                    (InterpolatedField.toElmExpression key)
+                                    (InterpolatedField.toElmExpression value)
                             )
-                        |> String.join "\n                , "
-                   )
-                ++ """
+                        |> Elm.list
+                    )
+                , Elm.field "body" (bodyGenerator request)
                 ]
-            , body = """
-                ++ (bodyGenerator request |> Elm.toString)
-                ++ """
-            }"""
+                |> Elm.toString
     in
     """
 data =
@@ -52,12 +44,12 @@ data =
         (Secrets.succeed
 """
         ++ (if List.isEmpty referencedVariables then
-                innerPart
+                indent (indent (indent requestRecord))
 
             else
                 """            (\\authToken ->
 """
-                    ++ indent innerPart
+                    ++ indent (indent (indent (indent requestRecord)))
                     ++ "\n            )\n"
                     ++ (List.map (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName) referencedVariables |> String.join "\n")
            )
