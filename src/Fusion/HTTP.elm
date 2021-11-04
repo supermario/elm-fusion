@@ -1,6 +1,7 @@
 module Fusion.HTTP exposing (..)
 
 import Colors exposing (..)
+import CurlGenerator
 import DataSourceGenerator
 import Dict exposing (Dict)
 import Element exposing (..)
@@ -364,7 +365,7 @@ generatedRequestView model =
                 elmHttpCodeGen model
 
             Curl ->
-                "TODO"
+                CurlGenerator.generate model.currentRequest
          )
             |> text
         )
