@@ -38,22 +38,33 @@ generate request =
                 ]
                 |> Elm.toString
     in
-    """
+    if List.isEmpty referencedVariables then
+        """
 data =
     DataSource.Http.request
         (Secrets.succeed
 """
-        ++ (if List.isEmpty referencedVariables then
-                indent (indent (indent requestRecord))
-
-            else
-                """            (\\authToken ->
+            ++ indent (indent (indent requestRecord))
+            ++ """
+        )
 """
-                    ++ indent (indent (indent (indent requestRecord)))
-                    ++ "\n            )\n"
-                    ++ (List.map (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName) referencedVariables |> String.join "\n")
-           )
-        ++ """
+
+    else
+        """
+data =
+    DataSource.Http.request
+        (Secrets.succeed
+"""
+            ++ """            (\\authToken ->
+"""
+            ++ indent (indent (indent (indent requestRecord)))
+            ++ "\n            )\n"
+            ++ (List.map
+                    (\variableName -> "            |> Secrets.with " ++ escapedAndQuoted variableName)
+                    referencedVariables
+                    |> String.join "\n"
+               )
+            ++ """
         )
 """
 
