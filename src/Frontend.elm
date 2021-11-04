@@ -193,7 +193,14 @@ update msg model =
             ( { model | codeGenMode = codeGenMode }, Cmd.none )
 
         VariableUpdated variableUpdate ->
-            ( { model | variables = model.variables |> Dict.update variableUpdate.name (\_ -> Just variableUpdate.value) }, Cmd.none )
+            ( { model | variables = model.variables |> Dict.update variableUpdate.name (\_ -> Just variableUpdate.value) }
+            , Cmd.none
+            )
+
+        DeleteVariable variableName ->
+            ( { model | variables = model.variables |> Dict.remove variableName }
+            , Cmd.none
+            )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )

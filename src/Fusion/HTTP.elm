@@ -21,6 +21,7 @@ import Json.Decode as D
 import List.Extra as List
 import RemoteData exposing (..)
 import Request exposing (Request)
+import Set exposing (Set)
 import Task exposing (Task)
 import Types exposing (..)
 import View.Helpers exposing (..)
@@ -114,6 +115,12 @@ variablesView variables request =
         allVariables =
             (referencedVariables ++ definedVariables)
                 |> List.unique
+
+        unreferencedVariables : Set String
+        unreferencedVariables =
+            Set.diff
+                (Set.fromList definedVariables)
+                (Set.fromList referencedVariables)
     in
     if allVariables |> List.isEmpty then
         text ""
@@ -122,19 +129,26 @@ variablesView variables request =
         column [ width fill, spacing 5 ]
             (el [ Font.size 16, paddingXY 0 10 ] (text "Variables")
                 :: (allVariables
-                        |> List.map (variableView variables)
+                        |> List.map (variableView variables unreferencedVariables)
                    )
             )
 
 
-variableView : Dict String String -> String -> Element Msg
-variableView variables variableName =
-    Input.text [ padding 5 ]
-        { onChange = \value -> VariableUpdated { name = variableName, value = value }
-        , text = variables |> Dict.get variableName |> Maybe.withDefault ""
-        , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
-        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
-        }
+variableView : Dict String String -> Set String -> String -> Element Msg
+variableView variables unreferencedVariables variableName =
+    row []
+        [ Input.text [ padding 5 ]
+            { onChange = \value -> VariableUpdated { name = variableName, value = value }
+            , text = variables |> Dict.get variableName |> Maybe.withDefault ""
+            , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
+            , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+            }
+        , if unreferencedVariables |> Set.member variableName then
+            button [] (DeleteVariable variableName) "DELETE"
+
+          else
+            text ""
+        ]
 
 
 toHttpMethod : Fusion.Types.RequestMethod -> String

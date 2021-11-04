@@ -34,7 +34,7 @@ type FrontendMsg
     | CodeGenModeChanged CodeGenMode
     | RequestUrlChanged String
     | VariableUpdated { name : String, value : String }
-      --| DeleteVariable String
+    | DeleteVariable String
     | RequestHeadersChanged String
     | RequestBodyChanged String
     | RequestExecClicked
