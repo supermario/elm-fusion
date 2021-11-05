@@ -4,49 +4,21 @@ import Cli.Option as Option
 import Cli.OptionsParser as OptionsParser exposing (OptionsParser)
 import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
+import CliArgsParser
 import Dict
 import InterpolatedField
 import Maybe.Extra
+import Parser
 import Regex exposing (Regex)
 import Request exposing (Request)
-
-
-argsRegex : Regex
-argsRegex =
-    -- \s+|\s*'([^']*)'|\s*"([^"]*)"
-    --"\\s+|\\s*'([^']*)'|\\s*\"([^\"]*)\""
-    "\\s+|\\s*'([^']*)'|\\s*\"([^\"]*)\"|(\\S+)"
-        --"\"[^\"\\\\]*(?:\\\\[\\S\\s][^\"\\\\]*)*\"|'[^'\\\\]*(?:\\[\\S\\s][^'\\]*)*'"
-        -- source: https://stackoverflow.com/a/43766456
-        --"\"([^\"\\\\]*(?:\\\\[\\S\\s][^\"\\]*)*)\"|'([^'\\]*(?:\\[\\S\\s][^'\\]*)*)'"
-        |> regex
-
-
-replaceEscapedNewlines : String -> String
-replaceEscapedNewlines string =
-    string
-        |> String.replace "\\\n" " "
 
 
 runCurl : String -> MatchResult Request
 runCurl command =
     OptionsParser.tryMatch
         (command
-            |> replaceEscapedNewlines
-            |> Regex.find argsRegex
-            |> List.map
-                (\match ->
-                    match.submatches
-                        |> List.head
-                        |> Maybe.withDefault Nothing
-                        |> Maybe.withDefault match.match
-                )
-            |> List.filter
-                (\arg ->
-                    arg
-                        |> Regex.contains (regex "^\\s*$")
-                        |> not
-                )
+            |> Parser.run CliArgsParser.parser
+            |> Result.withDefault []
         )
         curl
 
