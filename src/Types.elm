@@ -19,6 +19,11 @@ type alias FrontendModel =
     , rawHeaders : String
     , fusionDecoder : FusionDecoder
     , currentRequest : Request.Request
+    , lastPerformed :
+        Maybe
+            { request : Request.Request
+            , variables : Dict String String
+            }
     , httpRequest : RemoteData HttpError String
     , codeGenMode : CodeGenMode
     , variables : Dict String String

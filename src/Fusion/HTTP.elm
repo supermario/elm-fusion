@@ -269,7 +269,11 @@ view model =
             , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
             , el
                 [ onClick MakeRequestClicked
-                , Background.color green
+                , if model.lastPerformed == Just { request = model.currentRequest, variables = model.variables } then
+                    Background.color grey
+
+                  else
+                    Background.color green
                 , padding 10
                 , pointer
                 ]

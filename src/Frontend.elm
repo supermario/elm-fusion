@@ -55,6 +55,7 @@ init url key =
       , rawHeaders = ""
       , fusionDecoder = Fusion.Types.EmptyDecoder
       , currentRequest = Fusion.HTTP.emptyRequest
+      , lastPerformed = Nothing
 
       -- , httpRequest = NotAsked
       , httpRequest = Stub.basicJson
@@ -220,7 +221,14 @@ updateFromBackend msg model =
         RequestExecResult_ res ->
             case res of
                 Ok string ->
-                    ( { model | httpRequest = RemoteData.fromResult res }
+                    ( { model
+                        | httpRequest = RemoteData.fromResult res
+                        , lastPerformed =
+                            Just
+                                { request = model.currentRequest
+                                , variables = model.variables
+                                }
+                      }
                     , Cmd.none
                     )
 
