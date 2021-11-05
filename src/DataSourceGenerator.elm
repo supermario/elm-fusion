@@ -13,19 +13,30 @@ import Request exposing (Request)
 generate : Request -> Elm.Declaration
 generate request =
     let
-        referencedVariables : Maybe (List.NonEmpty.NonEmpty InterpolatedField.Variable)
-        referencedVariables =
-            request.headers
-                |> List.concatMap
-                    (\( key, value ) ->
-                        InterpolatedField.referencedVariables key ++ InterpolatedField.referencedVariables value
-                    )
-                |> List.NonEmpty.fromList
+        authHeaders : List Elm.Expression
+        authHeaders =
+            case request.auth of
+                Just (Request.BasicAuth basicAuth) ->
+                    [ Elm.tuple
+                        (Elm.string "Authorization")
+                        (Elm.apply (Elm.value "Base64.encode")
+                            [ Elm.append
+                                (Elm.append
+                                    (InterpolatedField.toElmExpression basicAuth.username)
+                                    (Elm.string ":")
+                                )
+                                (InterpolatedField.toElmExpression basicAuth.password)
+                            ]
+                        )
+                    ]
+
+                _ ->
+                    []
 
         requestRecordExpression : Elm.Expression
         requestRecordExpression =
             Elm.record
-                [ Elm.field "url" (Elm.string request.url)
+                [ Elm.field "url" (request.url |> InterpolatedField.toElmExpression)
                 , Elm.field "method" (request.method |> Request.methodToString |> Elm.string)
                 , Elm.field "headers"
                     (request.headers
@@ -35,12 +46,13 @@ generate request =
                                     (InterpolatedField.toElmExpression key)
                                     (InterpolatedField.toElmExpression value)
                             )
+                        |> List.append authHeaders
                         |> Elm.list
                     )
                 , Elm.field "body" (bodyGenerator request)
                 ]
     in
-    (case referencedVariables of
+    (case request |> Request.referencedVariables |> List.NonEmpty.fromList of
         Nothing ->
             Elm.Gen.DataSource.Http.request
                 (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
@@ -64,7 +76,7 @@ generate request =
                 secretsPipeline : Elm.Expression
                 secretsPipeline =
                     variables
-                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.variableName variable) ])
+                        |> List.NonEmpty.map (\variable -> Elm.apply (Elm.value "Secrets.with") [ Elm.string (InterpolatedField.rawVariableName variable) ])
                         |> List.NonEmpty.cons requestLambda
                         |> List.NonEmpty.foldr1 Elm.pipe
             in

@@ -1,4 +1,4 @@
-module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, referencedVariables, statementsHelp, toElmExpression, toElmVar, toString, tokenParser, variableName)
+module InterpolatedField exposing (Content(..), InterpolatedField(..), InterpolationField(..), Variable(..), fieldParser, fromString, interpolate, interpolationField, rawVariableName, referencedVariables, statementsHelp, toElmExpression, toElmVar, toString, tokenParser)
 
 import Dict exposing (Dict)
 import Elm
@@ -12,8 +12,8 @@ type InterpolatedField
     = InterpolatedField String
 
 
-variableName : Variable -> String
-variableName (Variable name) =
+rawVariableName : Variable -> String
+rawVariableName (Variable name) =
     name
 
 

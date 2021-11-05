@@ -21,6 +21,7 @@ type alias FrontendModel =
     , currentRequest : Request.Request
     , httpRequest : RemoteData HttpError String
     , codeGenMode : CodeGenMode
+    , variables : Dict String String
     }
 
 
@@ -31,8 +32,11 @@ type FrontendMsg
     | RequestHttpMethodChanged Request.Method
     | CodeGenModeChanged CodeGenMode
     | RequestUrlChanged String
+    | VariableUpdated { name : String, value : String }
+    | DeleteVariable String
     | RequestHeadersChanged String
     | RequestBodyChanged String
+    | AuthChanged (Maybe Request.Auth)
     | MakeRequestClicked
     | ResetDecoder
     | JsonAddField (List String) String JsonValue
@@ -47,7 +51,7 @@ type CodeGenMode
 
 
 type ToBackend
-    = MakeRequestClicked_ Request.Request
+    = MakeRequestClicked_ (Dict String String) Request.Request
     | NoOpToBackend
 
 

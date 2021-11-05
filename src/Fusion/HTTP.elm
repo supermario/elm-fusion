@@ -2,11 +2,13 @@ module Fusion.HTTP exposing (..)
 
 import Colors exposing (..)
 import DataSourceGenerator
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Element.Lazy
 import Elm
 import ElmHttpGenerator
 import Fusion.Json
@@ -14,10 +16,12 @@ import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType
 import Fusion.View
 import Helpers exposing (..)
 import Http exposing (..)
+import InterpolatedField
 import Json.Decode as D
 import List.Extra as List
 import RemoteData exposing (..)
 import Request exposing (Request)
+import Set exposing (Set)
 import Task exposing (Task)
 import Types exposing (..)
 import View.Helpers exposing (..)
@@ -35,9 +39,10 @@ emptyRequest : Request
 emptyRequest =
     { method = Request.GET
     , headers = []
-    , url = "https://jsonplaceholder.typicode.com/posts/1"
+    , url = "https://jsonplaceholder.typicode.com/posts/1" |> InterpolatedField.fromString
     , body = Request.StringBody "application/x-www-form-urlencoded" ""
     , timeout = Nothing
+    , auth = Nothing
     }
 
 
@@ -55,12 +60,12 @@ emptyRequest =
 --         }
 
 
-toHttpRequestTask : Request -> Task HttpError String
-toHttpRequestTask request =
+toHttpRequestTask : Dict String String -> Request -> Task HttpError String
+toHttpRequestTask variables request =
     let
         req : Fusion.Types.Request
         req =
-            Request.convert request
+            Request.convert variables request
     in
     Http.task
         { method = toHttpMethod req.method
@@ -92,6 +97,100 @@ toHttpBody body =
 
         Fusion.Types.MultiPart parts ->
             todo "MultiPart toHttpBody" Http.emptyBody
+
+
+variablesView : Dict String String -> Request -> Element Msg
+variablesView variables request =
+    let
+        referencedVariables : List String
+        referencedVariables =
+            Request.referencedVariables request
+                |> List.map InterpolatedField.rawVariableName
+
+        definedVariables : List String
+        definedVariables =
+            variables
+                |> Dict.keys
+
+        allVariables : List String
+        allVariables =
+            (referencedVariables ++ definedVariables)
+                |> List.unique
+
+        unreferencedVariables : Set String
+        unreferencedVariables =
+            Set.diff
+                (Set.fromList definedVariables)
+                (Set.fromList referencedVariables)
+    in
+    if allVariables |> List.isEmpty then
+        text ""
+
+    else
+        column [ width fill, spacing 5 ]
+            (el [ Font.size 16, paddingXY 0 10 ] (text "Variables")
+                :: (allVariables
+                        |> List.map (variableView variables unreferencedVariables)
+                   )
+            )
+
+
+variableView : Dict String String -> Set String -> String -> Element Msg
+variableView variables unreferencedVariables variableName =
+    row []
+        [ Input.text [ padding 5 ]
+            { onChange = \value -> VariableUpdated { name = variableName, value = value }
+            , text = variables |> Dict.get variableName |> Maybe.withDefault ""
+            , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
+            , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+            }
+        , if unreferencedVariables |> Set.member variableName then
+            button [] (DeleteVariable variableName) "DELETE"
+
+          else
+            text ""
+        ]
+
+
+authView : Maybe Request.Auth -> Element Msg
+authView maybeAuth =
+    -- TODO button to toggle between different auth types (for now just Basic or None)
+    column []
+        [ row []
+            [ buttonHilightOn (maybeAuth == Nothing) [] (AuthChanged Nothing) "None"
+            , buttonHilightOn
+                (case maybeAuth of
+                    Just (Request.BasicAuth _) ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (AuthChanged (Just (Request.BasicAuth { username = "" |> InterpolatedField.fromString, password = "" |> InterpolatedField.fromString })))
+                "Basic"
+            ]
+        , case maybeAuth of
+            Just (Request.BasicAuth basicAuth) ->
+                column [ width fill ]
+                    [ Input.text [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | username = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.username |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Username")
+                        }
+                    , Input.currentPassword [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | password = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.password |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , show = True
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Password")
+                        }
+                    ]
+
+            Nothing ->
+                column [] []
+        ]
 
 
 toHttpMethod : Fusion.Types.RequestMethod -> String
@@ -164,7 +263,8 @@ fusionAddField fieldName jv decoder =
 view : Model -> Element Msg
 view model =
     column [ width fill, spacing 10 ]
-        [ row [ spacing 5 ]
+        [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
+        , row [ spacing 5 ]
             [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
             , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
             , el
@@ -178,7 +278,7 @@ view model =
             ]
         , Input.multiline [ padding 5 ]
             { onChange = RequestUrlChanged
-            , text = model.currentRequest.url
+            , text = model.currentRequest.url |> InterpolatedField.toString
             , placeholder =
                 Just (Input.placeholder [] <| text "the HTTP URL")
             , label = Input.labelHidden "request url input"
@@ -198,6 +298,7 @@ view model =
             , label = Input.labelHidden "request body input"
             , spellcheck = False
             }
+        , authView model.currentRequest.auth
         , paragraph []
             [ case model.httpRequest of
                 NotAsked ->
@@ -281,7 +382,7 @@ elmPagesCodeGen model =
                     Fusion.Json.decoderFromTType tType
     in
     """import DataSource.Http
-import Secrets
+import Pages.Secrets
 import OptimizedDecoder as D
 import OptimizedDecoder.Pipeline exposing (required)
 
@@ -315,7 +416,7 @@ import Json.Decode as D
 import Json.Decode.Pipeline exposing (required)
 
 
-   """
+"""
         ++ (model.currentRequest
                 |> ElmHttpGenerator.generate
                 |> Elm.declarationToString

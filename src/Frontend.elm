@@ -59,6 +59,7 @@ init url key =
       -- , httpRequest = NotAsked
       , httpRequest = Stub.basicJson
       , codeGenMode = ElmPages
+      , variables = Dict.empty
       }
     , Cmd.none
     )
@@ -120,7 +121,7 @@ update msg model =
                     model
                         |> updateCurrentRequest
                             (\req ->
-                                { req | url = s }
+                                { req | url = InterpolatedField.fromString s }
                             )
             , Cmd.none
             )
@@ -161,7 +162,7 @@ update msg model =
             )
 
         MakeRequestClicked ->
-            ( { model | httpRequest = Loading }, sendToBackend (MakeRequestClicked_ model.currentRequest) )
+            ( { model | httpRequest = Loading }, sendToBackend (MakeRequestClicked_ model.variables model.currentRequest) )
 
         ResetDecoder ->
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
@@ -192,6 +193,25 @@ update msg model =
 
         CodeGenModeChanged codeGenMode ->
             ( { model | codeGenMode = codeGenMode }, Cmd.none )
+
+        VariableUpdated variableUpdate ->
+            ( { model | variables = model.variables |> Dict.update variableUpdate.name (\_ -> Just variableUpdate.value) }
+            , Cmd.none
+            )
+
+        DeleteVariable variableName ->
+            ( { model | variables = model.variables |> Dict.remove variableName }
+            , Cmd.none
+            )
+
+        AuthChanged maybeAuth ->
+            ( model
+                |> updateCurrentRequest
+                    (\req ->
+                        { req | auth = maybeAuth }
+                    )
+            , Cmd.none
+            )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )

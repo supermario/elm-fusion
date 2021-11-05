@@ -14,6 +14,7 @@ expectRequest :
     , method : Request.Method
     , url : String
     , body : Request.Body
+    , auth : Maybe Request.Auth
     }
     -> MatchResult Request
     -> Expectation
@@ -22,7 +23,7 @@ expectRequest expected actual =
         |> Expect.equal
             (Match
                 (Ok
-                    { url = expected.url
+                    { url = expected.url |> InterpolatedField.fromString
                     , method = expected.method
                     , headers =
                         expected.headers
@@ -31,6 +32,7 @@ expectRequest expected actual =
                             |> List.map (Tuple.mapFirst InterpolatedField.fromString >> Tuple.mapSecond InterpolatedField.fromString)
                     , timeout = Nothing
                     , body = expected.body
+                    , auth = expected.auth
                     }
                 )
             )
@@ -54,6 +56,7 @@ suite =
                             , ( "Connection", "keep-alive" )
                             ]
                         , body = Request.Empty
+                        , auth = Nothing
                         }
         , test "post" <|
             \() ->
@@ -74,6 +77,7 @@ suite =
                             , ( "Connection", "keep-alive" )
                             ]
                         , body = Request.StringBody "application/x-www-form-urlencoded; charset=UTF-8" "msg1=wow&msg2=such&msg3=data"
+                        , auth = Nothing
                         }
         , test "example from chrome dev tools copy" <|
             \() ->
@@ -108,6 +112,7 @@ suite =
                             , ( "user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36" )
                             ]
                         , body = Request.Empty
+                        , auth = Nothing
                         }
         , test "JSON body" <|
             \() ->
@@ -120,5 +125,27 @@ suite =
                             [ ( "Content-Type", "application/json" )
                             ]
                         , body = Request.StringBody "application/json" """{"json": "data"}"""
+                        , auth = Nothing
+                        }
+        , test "parses basic auth option from -u flag" <|
+            \() ->
+                """https://api.mux.com/video/v1/assets/${ASSET_ID} \\
+                     -X GET \\
+                     -H 'Content-Type: application/json' \\
+                     -u ${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}"""
+                    |> runCurl
+                    |> expectRequest
+                        { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
+                        , method = Request.GET
+                        , headers =
+                            [ ( "Content-Type", "application/json" )
+                            ]
+                        , body = Request.Empty
+                        , auth =
+                            Request.BasicAuth
+                                { username = "${MUX_TOKEN_ID}" |> InterpolatedField.fromString
+                                , password = "${MUX_TOKEN_SECRET}" |> InterpolatedField.fromString
+                                }
+                                |> Just
                         }
         ]
