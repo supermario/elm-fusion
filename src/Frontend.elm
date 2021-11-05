@@ -256,7 +256,7 @@ view model =
         , viewElmUi <|
             column [ width fill, height fill ]
                 [ nav
-                , column [ width fill, height fill, padding 20 ]
+                , column [ width fill, height fill, padding 10 ]
                     [ case model.page of
                         FusionHttp ->
                             Fusion.HTTP.view model

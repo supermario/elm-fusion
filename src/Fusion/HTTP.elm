@@ -281,47 +281,49 @@ view : Model -> Element Msg
 view model =
     column [ width fill, spacing 20 ]
         [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
-        , row [ spacing 5 ]
-            [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
-            , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
-            , el
-                [ onClick MakeRequestClicked
-                , if model.lastPerformed == Just { request = model.currentRequest, variables = model.variables } then
-                    Background.color grey
+        , section "Request builder"
+            [ row [ spacing 5 ]
+                [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
+                , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
+                , el
+                    [ onClick MakeRequestClicked
+                    , if model.lastPerformed == Just { request = model.currentRequest, variables = model.variables } then
+                        Background.color grey
 
-                  else
-                    Background.color green
-                , padding 10
-                , pointer
+                      else
+                        Background.color green
+                    , padding 10
+                    , pointer
+                    ]
+                  <|
+                    text "Make Request"
                 ]
-              <|
-                text "Make Request"
+            , Input.multiline [ padding 5 ]
+                { onChange = RequestUrlChanged
+                , text = model.currentRequest.url |> InterpolatedField.toString
+                , placeholder =
+                    Just (Input.placeholder [] <| text "the HTTP URL")
+                , label = Input.labelHidden "request url input"
+                , spellcheck = False
+                }
+            , Input.multiline [ padding 5 ]
+                { onChange = RequestHeadersChanged
+                , text = model.rawHeaders
+                , placeholder = Just (Input.placeholder [] <| text "request headers, one per line")
+                , label = Input.labelHidden "request headers input"
+                , spellcheck = False
+                }
+            , Input.multiline [ padding 5 ]
+                { onChange = RequestBodyChanged
+                , text = requestBodyString model.currentRequest
+                , placeholder = Just (Input.placeholder [] <| text "request body")
+                , label = Input.labelHidden "request body input"
+                , spellcheck = False
+                }
+            , authView model.currentRequest.auth
             ]
-        , Input.multiline [ padding 5 ]
-            { onChange = RequestUrlChanged
-            , text = model.currentRequest.url |> InterpolatedField.toString
-            , placeholder =
-                Just (Input.placeholder [] <| text "the HTTP URL")
-            , label = Input.labelHidden "request url input"
-            , spellcheck = False
-            }
-        , Input.multiline [ padding 5 ]
-            { onChange = RequestHeadersChanged
-            , text = model.rawHeaders
-            , placeholder = Just (Input.placeholder [] <| text "request headers, one per line")
-            , label = Input.labelHidden "request headers input"
-            , spellcheck = False
-            }
-        , Input.multiline [ padding 5 ]
-            { onChange = RequestBodyChanged
-            , text = requestBodyString model.currentRequest
-            , placeholder = Just (Input.placeholder [] <| text "request body")
-            , label = Input.labelHidden "request body input"
-            , spellcheck = False
-            }
-        , authView model.currentRequest.auth
         , section "HTTP Request Status"
-            [ paragraph [ padding 10 ]
+            [ paragraph []
                 [ case model.httpRequest of
                     NotAsked ->
                         text "No HTTP requests yet."
@@ -346,18 +348,18 @@ view model =
                         column [ width fill, spacing 20 ]
                             [ row [ width fill, spacing 20 ]
                                 [ section "Interactive JSON response"
-                                    [ column [ width fill, Font.family [ Font.monospace ], alignTop, padding 10 ]
+                                    [ column [ width fill, Font.family [ Font.monospace ], alignTop ]
                                         [ viewAst [] ast ]
                                     ]
                                 , column [ width fill, spacing 20 ]
                                     [ section "Selection builder"
-                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20, padding 10 ]
+                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                                             [ button [] ResetDecoder "Reset"
                                             , viewFusionDecoder model
                                             ]
                                         ]
                                     , section "Inferred type"
-                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20, padding 10 ]
+                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                                             [ viewFusionJsonInferredTypeString ast
                                             , viewFusionJsonInferredTypeRich ast
                                             ]
@@ -390,7 +392,7 @@ view model =
 section title children =
     column [ Background.color charcoal, width fill, padding 2, alignTop ]
         [ el [ padding 3, Font.size 10, Font.color white ] <| text title
-        , column [ Background.color white, width fill ] children
+        , column [ Background.color white, width fill, spacing 20, padding 10 ] children
         ]
 
 
