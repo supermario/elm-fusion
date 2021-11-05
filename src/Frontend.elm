@@ -267,7 +267,14 @@ view model =
 
 
 viewElmUi children =
-    layout [ Font.family [ Font.typeface "Roboto" ], Font.size 14, width fill, height fill ] <| children
+    layout
+        [ Font.family [ Font.typeface "system-ui" ]
+        , Font.size 14
+        , width fill
+        , Background.color grey
+        ]
+    <|
+        children
 
 
 nav =

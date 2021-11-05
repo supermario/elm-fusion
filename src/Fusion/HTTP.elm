@@ -340,7 +340,7 @@ view model =
             ]
 
         -- , paragraph [] [ text <| toString model.currentRequest ]
-        -- , section "JSON response interactive" [ paragraph [] [ text <| toString model.fusionDecoder ] ]
+        -- , paragraph [] [ text <| toString model.fusionDecoder ]
         , case model.httpRequest of
             Success string ->
                 case D.decodeString decodeJsonAst string of
@@ -353,10 +353,7 @@ view model =
                                     ]
                                 , column [ width fill, spacing 20 ]
                                     [ section "Selection builder"
-                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                            [ button [] ResetDecoder "Reset"
-                                            , viewFusionDecoder model
-                                            ]
+                                        [ viewFusionDecoder model
                                         ]
                                     , section "Inferred type"
                                         [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
@@ -391,7 +388,7 @@ view model =
 
 section title children =
     column [ Background.color charcoal, width fill, padding 2, alignTop ]
-        [ el [ padding 3, Font.size 10, Font.color white ] <| text title
+        [ el [ padding_ 2 5 5 4, Font.size 10, Font.color white ] <| text title
         , column [ Background.color white, width fill, spacing 20, padding 10 ] children
         ]
 
@@ -511,10 +508,13 @@ requestBodyString req =
 viewFusionDecoder model =
     case model.fusionDecoder of
         EmptyDecoder ->
-            text "Click on a JSON field value on the left to get started!"
+            text "Click on a JSON response value on the left to get started!"
 
         FusionType ttype ->
-            text <| Fusion.Json.decoderFromTType ttype
+            column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                [ button [] ResetDecoder "Reset"
+                , text <| Fusion.Json.decoderFromTType ttype
+                ]
 
 
 viewAst parents ast =
@@ -553,9 +553,11 @@ viewAst parents ast =
                     |> List.map
                         (\( field, jv ) ->
                             row
-                                [ onClick <| JsonAddField parents field jv
+                                [ onWithoutPropagation "click" <| JsonAddField parents field jv
                                 , pointer
-                                , mouseOver [ Background.color grey ]
+
+                                -- , mouseOver [ Background.color grey ]
+                                -- , onWithoutPropagation "mouseover"
                                 ]
                                 [ el [ alignTop ] <| text <| field ++ ": "
                                 , viewAst (parents ++ [ field ]) jv

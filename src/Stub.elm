@@ -10,7 +10,13 @@ basicJson =
     {
       "first": "Jane",
       "last": "Doe",
-      "favorite": "Chocolate"
+      "favorite": "Chocolate",
+      "address" : {
+          "line1": "123 Test St",
+          "line2": "Testburbia",
+          "state": "NSW",
+          "country": "AU"
+      }
     }
     """
         |> String.trim
