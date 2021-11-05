@@ -24,6 +24,7 @@ import Request exposing (Request)
 import Set exposing (Set)
 import Task exposing (Task)
 import Types exposing (..)
+import VariableDefinition exposing (VariableDefinition(..))
 import View.Helpers exposing (..)
 
 
@@ -60,7 +61,7 @@ emptyRequest =
 --         }
 
 
-toHttpRequestTask : Dict String String -> Request -> Task HttpError String
+toHttpRequestTask : Dict String VariableDefinition -> Request -> Task HttpError String
 toHttpRequestTask variables request =
     let
         req : Fusion.Types.Request
@@ -99,7 +100,7 @@ toHttpBody body =
             todo "MultiPart toHttpBody" Http.emptyBody
 
 
-variablesView : Dict String String -> Request -> Element Msg
+variablesView : Dict String VariableDefinition -> Request -> Element Msg
 variablesView variables request =
     let
         referencedVariables : List String
@@ -135,21 +136,33 @@ variablesView variables request =
             )
 
 
-variableView : Dict String String -> Set String -> String -> Element Msg
+variableView : Dict String VariableDefinition -> Set String -> String -> Element Msg
 variableView variables unreferencedVariables variableName =
-    row []
-        [ Input.text [ padding 5 ]
-            { onChange = \value -> VariableUpdated { name = variableName, value = value }
-            , text = variables |> Dict.get variableName |> Maybe.withDefault ""
-            , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
-            , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
-            }
-        , if unreferencedVariables |> Set.member variableName then
-            button [] (DeleteVariable variableName) "DELETE"
+    case variables |> Dict.get variableName |> Maybe.withDefault VariableDefinition.default of
+        VariableDefinition variableValue variableVisibility ->
+            row []
+                [ Input.text [ padding 5 ]
+                    { onChange = \newValue -> VariableUpdated { name = variableName, value = VariableDefinition newValue variableVisibility }
+                    , text = variableValue
+                    , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
+                    , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+                    }
+                , if unreferencedVariables |> Set.member variableName then
+                    button [] (DeleteVariable variableName) "DELETE"
 
-          else
-            text ""
-        ]
+                  else
+                    text ""
+                , row []
+                    [ buttonHilightOn (variableVisibility == VariableDefinition.Secret)
+                        []
+                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Secret })
+                        "Secret"
+                    , buttonHilightOn (variableVisibility == VariableDefinition.Parameter)
+                        []
+                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Parameter })
+                        "Parameter"
+                    ]
+                ]
 
 
 authView : Maybe Request.Auth -> Element Msg
@@ -388,7 +401,7 @@ import OptimizedDecoder.Pipeline exposing (required)
 
 """
         ++ (model.currentRequest
-                |> DataSourceGenerator.generate
+                |> DataSourceGenerator.generate model.variables
                 |> Elm.declarationToString
            )
         ++ "\n\ndecoder =\n"

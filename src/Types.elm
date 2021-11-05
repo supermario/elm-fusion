@@ -5,6 +5,7 @@ import Fusion.Types exposing (..)
 import Lamdera exposing (..)
 import RemoteData exposing (RemoteData)
 import Request
+import VariableDefinition exposing (VariableDefinition)
 
 
 type Page
@@ -21,7 +22,7 @@ type alias FrontendModel =
     , currentRequest : Request.Request
     , httpRequest : RemoteData HttpError String
     , codeGenMode : CodeGenMode
-    , variables : Dict String String
+    , variables : Dict String VariableDefinition
     }
 
 
@@ -32,7 +33,7 @@ type FrontendMsg
     | RequestHttpMethodChanged Request.Method
     | CodeGenModeChanged CodeGenMode
     | RequestUrlChanged String
-    | VariableUpdated { name : String, value : String }
+    | VariableUpdated { name : String, value : VariableDefinition }
     | DeleteVariable String
     | RequestHeadersChanged String
     | RequestBodyChanged String
@@ -51,7 +52,7 @@ type CodeGenMode
 
 
 type ToBackend
-    = MakeRequestClicked_ (Dict String String) Request.Request
+    = MakeRequestClicked_ (Dict String VariableDefinition) Request.Request
     | NoOpToBackend
 
 

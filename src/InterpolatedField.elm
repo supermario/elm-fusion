@@ -6,6 +6,7 @@ import Elm.Pattern
 import List.NonEmpty
 import Parser exposing ((|.), (|=), Parser)
 import String.Extra
+import VariableDefinition exposing (VariableDefinition(..))
 
 
 type InterpolatedField
@@ -17,7 +18,7 @@ rawVariableName (Variable name) =
     name
 
 
-interpolate : Dict String String -> InterpolatedField -> String
+interpolate : Dict String VariableDefinition -> InterpolatedField -> String
 interpolate interpolationValues (InterpolatedField raw) =
     case Parser.run fieldParser raw of
         Ok parsed ->
@@ -29,9 +30,9 @@ interpolate interpolationValues (InterpolatedField raw) =
                                 rawText
 
                             InterpolatedText (Variable name) ->
-                                interpolationValues
-                                    |> Dict.get name
-                                    |> Maybe.withDefault ""
+                                case interpolationValues |> Dict.get name |> Maybe.withDefault VariableDefinition.default of
+                                    VariableDefinition variableValue _ ->
+                                        variableValue
                     )
                 |> String.join ""
 
