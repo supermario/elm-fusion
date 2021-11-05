@@ -279,7 +279,7 @@ fusionAddField fieldName jv decoder =
 
 view : Model -> Element Msg
 view model =
-    column [ width fill, spacing 10 ]
+    column [ width fill, spacing 20 ]
         [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
         , row [ spacing 5 ]
             [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
@@ -320,43 +320,58 @@ view model =
             , spellcheck = False
             }
         , authView model.currentRequest.auth
-        , paragraph []
-            [ case model.httpRequest of
-                NotAsked ->
-                    text "No HTTP requests yet."
+        , section "HTTP Request Status"
+            [ paragraph [ padding 10 ]
+                [ case model.httpRequest of
+                    NotAsked ->
+                        text "No HTTP requests yet."
 
-                Loading ->
-                    text "Loading..."
+                    Loading ->
+                        text "Loading..."
 
-                Failure err ->
-                    text <| "Error: " ++ httpErrorToString err
+                    Failure err ->
+                        text <| "Error: " ++ httpErrorToString err
 
-                Success v ->
-                    text "HTTP succeeded."
+                    Success v ->
+                        text "HTTP succeeded."
+                ]
             ]
 
         -- , paragraph [] [ text <| toString model.currentRequest ]
-        , paragraph [] [ text <| toString model.fusionDecoder ]
+        -- , section "JSON response interactive" [ paragraph [] [ text <| toString model.fusionDecoder ] ]
         , case model.httpRequest of
             Success string ->
                 case D.decodeString decodeJsonAst string of
                     Ok ast ->
-                        column [ width fill, spacing 10 ]
+                        column [ width fill, spacing 20 ]
                             [ row [ width fill, spacing 20 ]
-                                [ column [ width fill, Font.family [ Font.monospace ], alignTop ] [ viewAst [] ast ]
-                                , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                    [ button [] ResetDecoder "Reset"
-                                    , viewFusionDecoder model
-                                    , viewFusionJsonInferredTypeString ast
-                                    , viewFusionJsonInferredTypeRich ast
+                                [ section "Interactive JSON response"
+                                    [ column [ width fill, Font.family [ Font.monospace ], alignTop, padding 10 ]
+                                        [ viewAst [] ast ]
+                                    ]
+                                , column [ width fill, spacing 20 ]
+                                    [ section "Selection builder"
+                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20, padding 10 ]
+                                            [ button [] ResetDecoder "Reset"
+                                            , viewFusionDecoder model
+                                            ]
+                                        ]
+                                    , section "Inferred type"
+                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20, padding 10 ]
+                                            [ viewFusionJsonInferredTypeString ast
+                                            , viewFusionJsonInferredTypeRich ast
+                                            ]
+                                        ]
                                     ]
                                 ]
-                            , row [ spacing 5 ]
-                                [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
-                                , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
-                                , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
+                            , section "Code generators"
+                                [ row [ spacing 5 ]
+                                    [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
+                                    , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
+                                    , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
+                                    ]
+                                , generatedRequestView model
                                 ]
-                            , generatedRequestView model
                             ]
 
                     Err err ->
@@ -372,10 +387,18 @@ view model =
         ]
 
 
+section title children =
+    column [ Background.color charcoal, width fill, padding 2, alignTop ]
+        [ el [ padding 3, Font.size 10, Font.color white ] <| text title
+        , column [ Background.color white, width fill ] children
+        ]
+
+
 generatedRequestView : Model -> Element msg
 generatedRequestView model =
     el
         [ Font.family [ Font.monospace ]
+        , padding 10
         ]
         ((case model.codeGenMode of
             ElmPages ->
@@ -486,7 +509,7 @@ requestBodyString req =
 viewFusionDecoder model =
     case model.fusionDecoder of
         EmptyDecoder ->
-            text "Click on a JSON field value to get started!"
+            text "Click on a JSON field value on the left to get started!"
 
         FusionType ttype ->
             text <| Fusion.Json.decoderFromTType ttype
