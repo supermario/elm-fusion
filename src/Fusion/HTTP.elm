@@ -140,12 +140,13 @@ variableView : Dict String VariableDefinition -> Set String -> String -> Element
 variableView variables unreferencedVariables variableName =
     case variables |> Dict.get variableName |> Maybe.withDefault VariableDefinition.default of
         VariableDefinition variableValue variableVisibility ->
-            row []
-                [ Input.text [ padding 5 ]
+            row [ width fill ]
+                [ Input.newPassword [ padding 5 ]
                     { onChange = \newValue -> VariableUpdated { name = variableName, value = VariableDefinition newValue variableVisibility }
                     , text = variableValue
                     , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
                     , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+                    , show = variableVisibility /= VariableDefinition.Secret
                     }
                 , if unreferencedVariables |> Set.member variableName then
                     button [] (DeleteVariable variableName) "DELETE"
@@ -153,11 +154,13 @@ variableView variables unreferencedVariables variableName =
                   else
                     text ""
                 , row []
-                    [ buttonHilightOn (variableVisibility == VariableDefinition.Secret)
+                    [ buttonHilightOnSvg .notVisible
+                        (variableVisibility == VariableDefinition.Secret)
                         []
                         (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Secret })
                         "Secret"
-                    , buttonHilightOn (variableVisibility == VariableDefinition.Parameter)
+                    , buttonHilightOnSvg .visible
+                        (variableVisibility == VariableDefinition.Parameter)
                         []
                         (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Parameter })
                         "Parameter"
