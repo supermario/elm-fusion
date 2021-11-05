@@ -34,6 +34,17 @@ suite =
                                 , InterpolatedField.RawText "!"
                                 ]
                             )
+            , test "interpolation without curly" <|
+                \() ->
+                    "Hello $NAME!"
+                        |> Parser.run InterpolatedField.fieldParser
+                        |> Expect.equal
+                            (Ok
+                                [ InterpolatedField.RawText "Hello "
+                                , InterpolatedField.InterpolatedText (InterpolatedField.Variable "NAME")
+                                , InterpolatedField.RawText "!"
+                                ]
+                            )
             ]
         , describe "codegen"
             [ test "interpolation with curly" <|

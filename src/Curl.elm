@@ -4,49 +4,21 @@ import Cli.Option as Option
 import Cli.OptionsParser as OptionsParser exposing (OptionsParser)
 import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
+import CliArgsParser
 import Dict
 import InterpolatedField
 import Maybe.Extra
+import Parser
 import Regex exposing (Regex)
 import Request exposing (Request)
-
-
-argsRegex : Regex
-argsRegex =
-    -- \s+|\s*'([^']*)'|\s*"([^"]*)"
-    --"\\s+|\\s*'([^']*)'|\\s*\"([^\"]*)\""
-    "\\s+|\\s*'([^']*)'|\\s*\"([^\"]*)\"|(\\S+)"
-        --"\"[^\"\\\\]*(?:\\\\[\\S\\s][^\"\\\\]*)*\"|'[^'\\\\]*(?:\\[\\S\\s][^'\\]*)*'"
-        -- source: https://stackoverflow.com/a/43766456
-        --"\"([^\"\\\\]*(?:\\\\[\\S\\s][^\"\\]*)*)\"|'([^'\\]*(?:\\[\\S\\s][^'\\]*)*)'"
-        |> regex
-
-
-replaceEscapedNewlines : String -> String
-replaceEscapedNewlines string =
-    string
-        |> String.replace "\\\n" " "
 
 
 runCurl : String -> MatchResult Request
 runCurl command =
     OptionsParser.tryMatch
         (command
-            |> replaceEscapedNewlines
-            |> Regex.find argsRegex
-            |> List.map
-                (\match ->
-                    match.submatches
-                        |> List.head
-                        |> Maybe.withDefault Nothing
-                        |> Maybe.withDefault match.match
-                )
-            |> List.filter
-                (\arg ->
-                    arg
-                        |> Regex.contains (regex "^\\s*$")
-                        |> not
-                )
+            |> Parser.run CliArgsParser.parser
+            |> Result.withDefault []
         )
         curl
 
@@ -80,7 +52,7 @@ removeLeadingSpace string =
 curl : OptionsParser Request Cli.OptionsParser.BuilderState.NoMoreOptions
 curl =
     OptionsParser.build
-        (\url data compressed header headers2 user1 user2 method ->
+        (\url data compressed header headers2 user1 user2 method1 method2 ->
             let
                 headers : Dict.Dict String String
                 headers =
@@ -91,7 +63,7 @@ curl =
             { url = url |> InterpolatedField.fromString
             , method =
                 if data == [] then
-                    method
+                    Maybe.Extra.or method1 method2
                         |> Maybe.map
                             (\justMethod ->
                                 case justMethod |> String.toUpper of
@@ -161,4 +133,5 @@ curl =
         |> OptionsParser.with (Option.optionalKeywordArg "u")
         |> OptionsParser.with (Option.optionalKeywordArg "user")
         |> OptionsParser.with (Option.optionalKeywordArg "X")
+        |> OptionsParser.with (Option.optionalKeywordArg "request")
         |> OptionsParser.end

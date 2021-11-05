@@ -1,4 +1,4 @@
-module CurlTest exposing (..)
+module CurlTest exposing (suite)
 
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Curl exposing (runCurl)
@@ -7,35 +7,6 @@ import Expect exposing (Expectation)
 import InterpolatedField
 import Request exposing (Request)
 import Test exposing (..)
-
-
-expectRequest :
-    { headers : List ( String, String )
-    , method : Request.Method
-    , url : String
-    , body : Request.Body
-    , auth : Maybe Request.Auth
-    }
-    -> MatchResult Request
-    -> Expectation
-expectRequest expected actual =
-    actual
-        |> Expect.equal
-            (Match
-                (Ok
-                    { url = expected.url |> InterpolatedField.fromString
-                    , method = expected.method
-                    , headers =
-                        expected.headers
-                            |> Dict.fromList
-                            |> Dict.toList
-                            |> List.map (Tuple.mapFirst InterpolatedField.fromString >> Tuple.mapSecond InterpolatedField.fromString)
-                    , timeout = Nothing
-                    , body = expected.body
-                    , auth = expected.auth
-                    }
-                )
-            )
 
 
 suite : Test
@@ -131,7 +102,7 @@ suite =
             \() ->
                 """https://api.mux.com/video/v1/assets/${ASSET_ID} \\
                      -X GET \\
-                     -H 'Content-Type: application/json' \\
+                     -H "Content-Type: application/json" \\
                      -u ${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}"""
                     |> runCurl
                     |> expectRequest
@@ -149,3 +120,32 @@ suite =
                                 |> Just
                         }
         ]
+
+
+expectRequest :
+    { headers : List ( String, String )
+    , method : Request.Method
+    , url : String
+    , body : Request.Body
+    , auth : Maybe Request.Auth
+    }
+    -> MatchResult Request
+    -> Expectation
+expectRequest expected actual =
+    actual
+        |> Expect.equal
+            (Match
+                (Ok
+                    { url = expected.url |> InterpolatedField.fromString
+                    , method = expected.method
+                    , headers =
+                        expected.headers
+                            |> Dict.fromList
+                            |> Dict.toList
+                            |> List.map (Tuple.mapFirst InterpolatedField.fromString >> Tuple.mapSecond InterpolatedField.fromString)
+                    , timeout = Nothing
+                    , body = expected.body
+                    , auth = expected.auth
+                    }
+                )
+            )

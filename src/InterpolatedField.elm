@@ -5,6 +5,7 @@ import Elm
 import Elm.Pattern
 import List.NonEmpty
 import Parser exposing ((|.), (|=), Parser)
+import Set
 import String.Extra
 
 
@@ -60,7 +61,11 @@ tokenParser =
                         |> Parser.getChompedString
                    )
                 |. Parser.token "}"
-            , Parser.chompWhile (\character -> character /= ' ' && character /= '\n') |> Parser.getChompedString
+            , Parser.variable
+                { start = Char.isAlpha
+                , inner = \char -> Char.isAlphaNum char || char == '_'
+                , reserved = Set.empty
+                }
             ]
 
 
