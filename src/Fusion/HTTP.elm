@@ -13,7 +13,8 @@ import Element.Lazy
 import Elm
 import ElmHttpGenerator
 import Fusion.Json
-import Fusion.Types exposing (FusionDecoder(..), HttpError, JsonValue(..), TType(..))
+import Fusion.Map exposing (mapToType)
+import Fusion.Types exposing (..)
 import Fusion.View
 import Helpers exposing (..)
 import Http exposing (..)
@@ -220,53 +221,75 @@ toHttpMethod method =
             "POST"
 
 
-guessElmTypeForJsonValue jv =
+guessElmTypeForJsonValue jv jsonPath =
     case jv of
         JInt int ->
-            TInt
+            MInt jsonPath
 
         JFloat float ->
-            TFloat
+            MFloat jsonPath
 
         JString string ->
-            TString
+            MString jsonPath
 
         JBool bool ->
-            TBool
+            MBool jsonPath
 
         JNull ->
-            TMaybe (TParam "unknown")
+            MMaybe (MParam "unknown") jsonPath
 
         JList jvs ->
             case jvs of
                 v :: _ ->
-                    TList <| guessElmTypeForJsonValue v
+                    -- @TODO this aint right
+                    MList (guessElmTypeForJsonValue v jsonPath) jsonPath
 
                 [] ->
-                    TList (TParam "unknown")
+                    MList (MParam "unknown") jsonPath
 
         JObject fields ->
             fields
-                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ ))
-                |> TRecord "Unknown" []
+                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ jsonPath ))
+                -- @TODO this aint right
+                |> (\fields_ -> MRecord "Unknown" [] fields_ jsonPath)
 
 
-fusionAddField fieldName jv decoder =
+fusionAddField parents fieldName jv decoder =
     case decoder of
         EmptyDecoder ->
-            FusionType <| TRecord "Unknown" [] [ ( fieldName, guessElmTypeForJsonValue jv ) ]
+            FusionType <|
+                MRecord "Unknown"
+                    []
+                    [ ( fieldName
+                      , guessElmTypeForJsonValue jv (At parents fieldName)
+                      )
+                    ]
+                    Root
 
         FusionType ttype ->
             case ttype of
-                TRecord name tParams fields ->
-                    FusionType <|
-                        TRecord name
-                            tParams
-                            (fields
-                                |> List.append [ ( fieldName, guessElmTypeForJsonValue jv ) ]
-                                |> List.uniqueBy (\( n, f ) -> n)
-                                |> List.sortBy (\( n, f ) -> n)
-                            )
+                MRecord name tParams fields jsonPath ->
+                    if parents == [] then
+                        FusionType <|
+                            MRecord name
+                                tParams
+                                (fields
+                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv jsonPath ) ]
+                                    |> List.uniqueBy (\( n, f ) -> n)
+                                    |> List.sortBy (\( n, f ) -> n)
+                                )
+                                jsonPath
+
+                    else
+                        FusionType <|
+                            MRecord name
+                                tParams
+                                (fields
+                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv jsonPath ) ]
+                                    |> List.uniqueBy (\( n, f ) -> n)
+                                    |> List.sortBy (\( n, f ) -> n)
+                                )
+                                jsonPath
 
                 _ ->
                     -- Cannot add fields to non-record type
@@ -422,7 +445,7 @@ elmPagesCodeGen model =
                     "D.fail \"TODO you can create a decoder through the UI above\""
 
                 FusionType tType ->
-                    Fusion.Json.decoderFromTType tType
+                    Fusion.Json.decoderFromTType (mapToType tType)
     in
     """import DataSource.Http
 import Pages.Secrets
@@ -448,8 +471,8 @@ elmHttpCodeGen model =
                         EmptyDecoder ->
                             "D.fail \"TODO you can create a decoder through the UI above\""
 
-                        FusionType tType ->
-                            Fusion.Json.decoderFromTType tType
+                        FusionType mType ->
+                            Fusion.Json.decoderFromTType (mapToType mType)
                     )
                         |> indent
                    )
@@ -513,7 +536,7 @@ viewFusionDecoder model =
         FusionType ttype ->
             column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                 [ button [] ResetDecoder "Reset"
-                , text <| Fusion.Json.decoderFromTType ttype
+                , text <| Fusion.Json.decoderFromTType (mapToType ttype)
                 ]
 
 
@@ -555,11 +578,8 @@ viewAst parents ast =
                             row
                                 [ onWithoutPropagation "click" <| JsonAddField parents field jv
                                 , pointer
-
-                                -- , mouseOver [ Background.color grey ]
-                                -- , onWithoutPropagation "mouseover"
                                 ]
-                                [ el [ alignTop ] <| text <| field ++ ": "
+                                [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ ": "
                                 , viewAst (parents ++ [ field ]) jv
                                 ]
                         )
@@ -581,11 +601,11 @@ decodeJsonAst =
 
 
 viewFusionJsonInferredTypeRich ast =
-    Fusion.View.viewType <| guessElmTypeForJsonValue ast
+    Fusion.View.viewType <| mapToType <| guessElmTypeForJsonValue ast Root
 
 
 viewFusionJsonInferredTypeString ast =
-    text <| Fusion.View.typeString 0 <| guessElmTypeForJsonValue ast
+    text <| Fusion.View.typeString 0 <| mapToType <| guessElmTypeForJsonValue ast Root
 
 
 httpErrorToString : HttpError -> String

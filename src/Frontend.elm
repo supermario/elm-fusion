@@ -169,7 +169,7 @@ update msg model =
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
 
         JsonAddField parents f jv ->
-            ( { model | fusionDecoder = fusionAddField f jv model.fusionDecoder }, Cmd.none )
+            ( { model | fusionDecoder = fusionAddField parents f jv model.fusionDecoder }, Cmd.none )
 
         JsonAddAll parents jv ->
             case jv of
@@ -177,7 +177,7 @@ update msg model =
                     fields
                         |> List.foldl
                             (\( f, v ) m ->
-                                { m | fusionDecoder = fusionAddField f jv m.fusionDecoder }
+                                { m | fusionDecoder = fusionAddField parents f jv m.fusionDecoder }
                             )
                             model
                         |> (\m -> ( m, Cmd.none ))

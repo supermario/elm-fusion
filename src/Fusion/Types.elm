@@ -3,6 +3,34 @@ module Fusion.Types exposing (..)
 import Http
 
 
+{-| Mapped type
+-}
+type MType
+    = MInt JsonPath
+    | MFloat JsonPath
+    | MString JsonPath
+    | MBool JsonPath
+    | MList MType JsonPath
+    | MCustom Name MParams (List ( Name, List MType )) JsonPath
+    | MRecord Name MParams (List ( Name, MType )) JsonPath
+    | MParam Name
+      -- Non-language but core types
+    | MMaybe MType JsonPath
+      -- Helpers
+    | MRecursive Name
+      --
+    | MUnimplemented
+
+
+type alias MParams =
+    List MType
+
+
+type JsonPath
+    = Root
+    | At (List String) String
+
+
 type
     TType
     -- Type level type
@@ -65,7 +93,7 @@ type alias FieldName =
 
 type FusionDecoder
     = EmptyDecoder
-    | FusionType TType
+    | FusionType MType
 
 
 type JsonValue
