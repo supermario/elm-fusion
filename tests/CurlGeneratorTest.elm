@@ -24,7 +24,7 @@ suite =
                     |> toRequest
                     |> CurlGenerator.generate
                     |> Expect.equal
-                        """curl "http://en.wikipedia.org/" -H "Accept-Language: en-US,en;q=0.8" -H "Referer: http://www.wikipedia.org/\""""
+                        """curl "http://en.wikipedia.org/" -X GET -H "Accept-Language: en-US,en;q=0.8" -H "Referer: http://www.wikipedia.org/\""""
         , test "Basic Auth" <|
             \() ->
                 { url = "http://en.wikipedia.org/"
@@ -45,7 +45,19 @@ suite =
                     |> toRequest
                     |> CurlGenerator.generate
                     |> Expect.equal
-                        """curl "http://en.wikipedia.org/" -H "Accept-Language: en-US,en;q=0.8" -H "Referer: http://www.wikipedia.org/" -u "user:$PASSWORD\""""
+                        """curl "http://en.wikipedia.org/" -X GET -H "Accept-Language: en-US,en;q=0.8" -H "Referer: http://www.wikipedia.org/" -u "user:$PASSWORD\""""
+        , test "POST with JSON body" <|
+            \() ->
+                { url = "https://reqbin.com/echo/post/json"
+                , method = Request.POST
+                , body = Request.StringBody "application/json" """{"login":"my_login","password":"my_password"}"""
+                , headers = []
+                , auth = Nothing
+                }
+                    |> toRequest
+                    |> CurlGenerator.generate
+                    |> Expect.equal
+                        """curl "https://reqbin.com/echo/post/json" -X POST  -H "Content-Type: application/json" -d "{\\"login\\":\\"my_login\\",\\"password\\":\\"my_password\\"}\""""
         ]
 
 

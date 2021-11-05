@@ -20,9 +20,23 @@ generate request =
 
                 _ ->
                     ""
+
+        bodyOptions : String
+        bodyOptions =
+            case request.body of
+                Request.StringBody contentType body ->
+                    """ -H "Content-Type: """
+                        ++ contentType
+                        ++ """" -d """
+                        ++ quoted body
+
+                Request.Empty ->
+                    ""
     in
-    """curl """
+    "curl "
         ++ quoted (InterpolatedField.toString request.url)
+        ++ " -X "
+        ++ Request.methodToString request.method
         ++ " "
         ++ (List.map (\header -> "-H " ++ quoted header)
                 (request.headers
@@ -36,8 +50,11 @@ generate request =
                 |> String.join " "
            )
         ++ authHeaders
+        ++ bodyOptions
 
 
 quoted : String -> String
 quoted string =
-    "\"" ++ string ++ "\""
+    "\""
+        ++ (string |> String.replace "\"" "\\\"")
+        ++ "\""
