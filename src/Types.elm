@@ -23,7 +23,7 @@ type alias FrontendModel =
     , lastPerformed :
         Maybe
             { request : Request.Request
-            , variables : Dict String String
+            , variables : Dict String VariableDefinition
             }
     , httpRequest : RemoteData HttpError String
     , codeGenMode : CodeGenMode
