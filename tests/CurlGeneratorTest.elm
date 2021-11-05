@@ -57,7 +57,7 @@ suite =
                     |> toRequest
                     |> CurlGenerator.generate
                     |> Expect.equal
-                        """curl "https://reqbin.com/echo/post/json" -X POST  -H "Content-Type: application/json" -d "{\\"login\\":\\"my_login\\",\\"password\\":\\"my_password\\"}\""""
+                        """curl "https://reqbin.com/echo/post/json" -X POST -H "Content-Type: application/json" -d "{\\"login\\":\\"my_login\\",\\"password\\":\\"my_password\\"}\""""
         ]
 
 
