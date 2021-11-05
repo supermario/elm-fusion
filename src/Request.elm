@@ -5,6 +5,7 @@ import Dict exposing (Dict)
 import Fusion.Types
 import Http
 import InterpolatedField exposing (InterpolatedField)
+import VariableDefinition exposing (VariableDefinition)
 
 
 type alias Request =
@@ -34,7 +35,7 @@ type Body
     | StringBody String String
 
 
-convert : Dict String String -> Request -> Fusion.Types.Request
+convert : Dict String VariableDefinition -> Request -> Fusion.Types.Request
 convert variables request =
     let
         authHeaders : List Http.Header

@@ -1,5 +1,6 @@
 module DataSourceGenerator exposing (..)
 
+import Dict exposing (Dict)
 import Elm
 import Elm.Annotation
 import Elm.Gen.DataSource.Http
@@ -8,10 +9,11 @@ import Elm.Pattern
 import InterpolatedField
 import List.NonEmpty
 import Request exposing (Request)
+import VariableDefinition exposing (VariableDefinition)
 
 
-generate : Request -> Elm.Declaration
-generate request =
+generate : Dict String VariableDefinition -> Request -> Elm.Declaration
+generate variableDefinitions request =
     let
         authHeaders : List Elm.Expression
         authHeaders =
@@ -51,8 +53,45 @@ generate request =
                     )
                 , Elm.field "body" (bodyGenerator request)
                 ]
+
+        variablesWithVisibility : List ( InterpolatedField.Variable, VariableDefinition.Visibility )
+        variablesWithVisibility =
+            request
+                |> Request.referencedVariables
+                |> List.map
+                    (\variable ->
+                        ( variable
+                        , Dict.get (InterpolatedField.rawVariableName variable) variableDefinitions
+                            |> Maybe.withDefault VariableDefinition.default
+                            |> VariableDefinition.visibility
+                        )
+                    )
+
+        secrets : List InterpolatedField.Variable
+        secrets =
+            variablesWithVisibility
+                |> List.filterMap
+                    (\( variable, visibility ) ->
+                        if visibility == VariableDefinition.Secret then
+                            Just variable
+
+                        else
+                            Nothing
+                    )
+
+        params : List InterpolatedField.Variable
+        params =
+            variablesWithVisibility
+                |> List.filterMap
+                    (\( variable, visibility ) ->
+                        if visibility == VariableDefinition.Parameter then
+                            Just variable
+
+                        else
+                            Nothing
+                    )
     in
-    (case request |> Request.referencedVariables |> List.NonEmpty.fromList of
+    (case secrets |> List.NonEmpty.fromList of
         Nothing ->
             Elm.Gen.DataSource.Http.request
                 (requestRecordExpression |> Elm.Gen.Pages.Secrets.succeed)
@@ -84,7 +123,15 @@ generate request =
                 secretsPipeline
                 (Elm.value "decoder")
     )
-        |> Elm.declaration "data"
+        |> Elm.functionWith "data"
+            (params
+                |> List.map
+                    (\param ->
+                        ( Elm.Annotation.string
+                        , InterpolatedField.toElmVar param
+                        )
+                    )
+            )
 
 
 bodyGenerator : Request -> Elm.Expression

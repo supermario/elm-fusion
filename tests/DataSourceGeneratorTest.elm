@@ -1,11 +1,13 @@
 module DataSourceGeneratorTest exposing (..)
 
 import DataSourceGenerator
+import Dict
 import Elm
 import Expect
 import InterpolatedField
 import Request exposing (Request)
 import Test exposing (Test, describe, test)
+import VariableDefinition exposing (VariableDefinition(..))
 
 
 suite : Test
@@ -23,7 +25,7 @@ suite =
                 , auth = Nothing
                 }
                     |> toRequest
-                    |> DataSourceGenerator.generate
+                    |> DataSourceGenerator.generate Dict.empty
                     |> Elm.declarationToString
                     |> Expect.equal
                         """data =
@@ -51,7 +53,7 @@ suite =
                 , auth = Nothing
                 }
                     |> toRequest
-                    |> DataSourceGenerator.generate
+                    |> DataSourceGenerator.generate Dict.empty
                     |> Elm.declarationToString
                     |> Expect.equal
                         """data =
@@ -82,7 +84,7 @@ suite =
                 , auth = Nothing
                 }
                     |> toRequest
-                    |> DataSourceGenerator.generate
+                    |> DataSourceGenerator.generate Dict.empty
                     |> Elm.declarationToString
                     |> Expect.equal
                         """data =
@@ -113,7 +115,7 @@ suite =
                 , auth = Nothing
                 }
                     |> toRequest
-                    |> DataSourceGenerator.generate
+                    |> DataSourceGenerator.generate Dict.empty
                     |> Elm.declarationToString
                     |> Expect.equal
                         """data =
@@ -149,7 +151,7 @@ suite =
                         |> Just
                 }
                     |> toRequest
-                    |> DataSourceGenerator.generate
+                    |> DataSourceGenerator.generate Dict.empty
                     |> Elm.declarationToString
                     |> Expect.equal
                         """data =
@@ -170,6 +172,48 @@ suite =
             |> Secrets.with "MUX_TOKEN_ID"
             |> Secrets.with "MUX_TOKEN_SECRET"
             |> Secrets.with "ASSET_ID"
+        )
+        decoder"""
+        , test "with some params" <|
+            \() ->
+                { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
+                , method = Request.GET
+                , body = Request.Empty
+                , headers =
+                    [ ( "Content-Type", "application/json" )
+                    ]
+                , auth =
+                    Request.BasicAuth
+                        { username = "${MUX_TOKEN_ID}" |> InterpolatedField.fromString
+                        , password = "${MUX_TOKEN_SECRET}" |> InterpolatedField.fromString
+                        }
+                        |> Just
+                }
+                    |> toRequest
+                    |> DataSourceGenerator.generate
+                        (Dict.fromList
+                            [ ( "ASSET_ID", VariableDefinition "" VariableDefinition.Parameter )
+                            ]
+                        )
+                    |> Elm.declarationToString
+                    |> Expect.equal
+                        """data assetId =
+    DataSource.Http.request
+        (Pages.Secrets.succeed
+            (\\muxTokenId muxTokenSecret ->
+                { url = "https://api.mux.com/video/v1/assets/" ++ assetId
+                , method = "GET"
+                , headers =
+                    [ ( "Authorization"
+                      , Base64.encode (muxTokenId ++ ":" ++ muxTokenSecret)
+                      )
+                    , ( "Content-Type", "application/json" )
+                    ]
+                , body = DataSource.Http.emptyBody
+                }
+            )
+            |> Secrets.with "MUX_TOKEN_ID"
+            |> Secrets.with "MUX_TOKEN_SECRET"
         )
         decoder"""
         ]
