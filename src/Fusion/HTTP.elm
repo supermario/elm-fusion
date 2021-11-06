@@ -304,7 +304,7 @@ view model =
                                                             Fusion.Transform.mapToType <|
                                                                 Op.guessElmTypeForJsonValue ast Root
                                             , el [ width fill, alignTop ] <|
-                                                Fusion.View.viewType { delete = always NoOpFrontendMsg } <|
+                                                Fusion.View.viewType Nothing <|
                                                     Op.guessElmTypeForJsonValue ast Root
                                             ]
                                         ]
@@ -316,7 +316,7 @@ view model =
                                                 [ text "Click on a JSON response value label on the left to get started!" ]
 
                                             FusionType mtype ->
-                                                [ Fusion.View.viewType { delete = FusionRemoveField } <| Fusion.Transform.decoderToMType model.fusionDecoder
+                                                [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
                                                 , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                                                     [ button [] ResetDecoder "Reset"
                                                     , text <| Fusion.Json.decoderFromMType 0 mtype

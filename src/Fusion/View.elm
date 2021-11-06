@@ -49,15 +49,15 @@ type alias Actions msg =
     { delete : MType -> msg }
 
 
-viewType : Actions msg -> MType -> Element msg
-viewType actions t =
+viewType : Maybe (Actions msg) -> MType -> Element msg
+viewType mActions t =
     let
         debug =
             -- [ Border.width 1, Border.color blue, width fill ]
             [ width fill ]
     in
     row [ spacing 10, Font.family [ Font.monospace ], width fill ]
-        [ el debug <| typeRich actions t
+        [ el debug <| typeRich mActions t
         ]
 
 
@@ -124,7 +124,7 @@ typeString indent stub =
             name
 
         TMaybe ttype ->
-            "List" ++ recurse ttype
+            "Maybe " ++ recurse ttype
 
         TRecursive name ->
             name
@@ -133,8 +133,8 @@ typeString indent stub =
             "TUnimplemented"
 
 
-typeRich : Actions msg -> MType -> Element msg
-typeRich actions mtype_ =
+typeRich : Maybe (Actions msg) -> MType -> Element msg
+typeRich mActions mtype_ =
     let
         debug =
             -- Border.width 1
@@ -147,7 +147,10 @@ typeRich actions mtype_ =
             [ Font.color orange, paddingXY 5 2, debug, Border.color white ]
 
         recurse =
-            typeRich actions
+            typeRich mActions
+
+        withActions fn =
+            mActions |> Maybe.map fn |> Maybe.withDefault attrNone
     in
     case mtype_ of
         MString jp ->
@@ -201,7 +204,7 @@ typeRich actions mtype_ =
                                         [ padding 5
                                         , spacing 0
                                         , padding_ 0 0 0 20
-                                        , inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ])
+                                        , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ]))
                                         , width fill
                                         ]
                                         [ el [ alignTop ] <| text fname
@@ -214,7 +217,7 @@ typeRich actions mtype_ =
                                         [ padding 5
                                         , spacing 0
                                         , padding_ 0 0 0 20
-                                        , inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ])
+                                        , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ]))
                                         , width fill
                                         ]
                                         [ row []
