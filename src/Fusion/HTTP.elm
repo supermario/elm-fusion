@@ -28,6 +28,7 @@ import Task exposing (Task)
 import Types exposing (..)
 import VariableDefinition exposing (VariableDefinition(..))
 import View.Helpers exposing (..)
+import View.InteractiveJson
 
 
 type alias Model =
@@ -398,12 +399,12 @@ view model =
                             [ row [ width fill, spacing 20 ]
                                 [ column [ width fill, alignTop, spacing 20 ]
                                     [ section "Interactive JSON response"
-                                        [ viewInteractiveJson [] ast
+                                        [ View.InteractiveJson.fromJsonValue [] ast
                                         ]
                                     , section "Response JSON inferred type"
-                                        [ row [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                            [ el [ width fill ] <| viewFusionJsonInferredTypeString ast
-                                            , el [ width fill ] <| viewFusionJsonInferredTypeRich ast
+                                        [ row [ width fill, alignTop, spacing 20 ]
+                                            [ el [ width fill, alignTop ] <| viewFusionJsonInferredTypeString ast
+                                            , el [ width fill, alignTop ] <| viewFusionJsonInferredTypeRich ast
                                             ]
                                         ]
                                     ]
@@ -568,58 +569,6 @@ viewFusionDecoder model =
                 ]
 
 
-viewInteractiveJson parents jsonValue =
-    el [ width fill, Font.family [ Font.monospace ], alignTop ] <|
-        viewJsonValue [] jsonValue
-
-
-viewJsonValue parents jv =
-    case jv of
-        JInt int ->
-            paragraph [ Font.color orange ] [ text <| String.fromInt int ]
-
-        JFloat float ->
-            paragraph [ Font.color orange ] [ text <| String.fromFloat float ]
-
-        JString string ->
-            paragraph [ Font.color green, width (fill |> maximum 300) ] [ text <| "\"" ++ string ++ "\"" ]
-
-        JBool bool ->
-            text <|
-                case bool of
-                    True ->
-                        "true"
-
-                    False ->
-                        "false"
-
-        JNull ->
-            text "null"
-
-        JList list ->
-            list
-                |> List.map (viewJsonValue parents)
-                -- |> List.intersperse (text ",")
-                |> column [ spacing 10 ]
-
-        JObject fields ->
-            column [ spacing 10 ]
-                [ button [] (JsonAddAll parents jv) "Add all"
-                , fields
-                    |> List.map
-                        (\( field, subJv ) ->
-                            row
-                                [ onWithoutPropagation "click" <| JsonAddField parents field subJv
-                                , pointer
-                                ]
-                                [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ ": "
-                                , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <| viewJsonValue (parents ++ [ field ]) subJv
-                                ]
-                        )
-                    |> column [ spacing 10 ]
-                ]
-
-
 decodeJsonAst : D.Decoder JsonValue
 decodeJsonAst =
     D.oneOf
@@ -640,7 +589,11 @@ viewFusionJsonInferredTypeRich jsonValue =
 
 viewFusionJsonInferredTypeString : JsonValue -> Element msg
 viewFusionJsonInferredTypeString jsonValue =
-    text <| Fusion.View.typeString 0 <| Fusion.Transform.mapToType <| guessElmTypeForJsonValue jsonValue Root
+    el [ alignTop, Font.family [ Font.monospace ], width fill ] <|
+        text <|
+            Fusion.View.typeString 0 <|
+                Fusion.Transform.mapToType <|
+                    guessElmTypeForJsonValue jsonValue Root
 
 
 httpErrorToString : HttpError -> String

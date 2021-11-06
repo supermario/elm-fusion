@@ -43,7 +43,7 @@ charcoal =
 
 
 viewType t =
-    row [ spacing 10, padding 20 ]
+    row [ spacing 10, padding 20, Font.family [ Font.monospace ] ]
         [ el [ Border.width 1, Border.color blue ] <| typeRich t
         ]
 
