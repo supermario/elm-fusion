@@ -38,7 +38,7 @@ buttonHilightOn cond attrs msg t =
         button (attrs ++ []) msg t
 
 
-buttonSvg getSvg attrs msg label =
+buttonSvg getIcon attrs msg label =
     row
         ([ Background.color grey
          , padding 10
@@ -49,20 +49,20 @@ buttonSvg getSvg attrs msg label =
             ++ attrs
         )
         [ text label
-        , Icon.icons |> getSvg
+        , (Icon.icons |> getIcon) []
         ]
 
 
-buttonHilightOnSvg getSvg cond attrs msg t =
+buttonHilightOnSvg getIcon cond attrs msg t =
     let
         hilight =
             Background.color blue
     in
     if cond then
-        buttonSvg getSvg (attrs ++ [ hilight ]) msg t
+        buttonSvg getIcon (attrs ++ [ hilight ]) msg t
 
     else
-        buttonSvg getSvg (attrs ++ []) msg t
+        buttonSvg getIcon (attrs ++ []) msg t
 
 
 viewLabel label =

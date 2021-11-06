@@ -131,11 +131,9 @@ variablesView variables request =
         text ""
 
     else
-        column [ width fill, spacing 5 ]
-            (el [ Font.size 16, paddingXY 0 10 ] (text "Variables")
-                :: (allVariables
-                        |> List.map (variableView variables unreferencedVariables)
-                   )
+        section "Variables"
+            (allVariables
+                |> List.map (variableView variables unreferencedVariables)
             )
 
 
