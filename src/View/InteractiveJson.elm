@@ -45,18 +45,48 @@ viewJsonValue parents jv =
                 |> column [ spacing 10 ]
 
         JObject fields ->
-            column [ spacing 10 ]
-                [ button [] (JsonAddAll parents jv) "Add all"
+            column [ spacing 5 ]
+                [ row [ spacing 10 ]
+                    [ text "{"
+                    , button [ Font.size 10, padding 2 ] (JsonAddAll parents jv) "Add all"
+                    ]
                 , fields
                     |> List.map
                         (\( field, subJv ) ->
-                            row
-                                [ onWithoutPropagation "click" <| JsonAddField parents field subJv
-                                , pointer
-                                ]
-                                [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ ": "
-                                , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <| viewJsonValue (parents ++ [ field ]) subJv
-                                ]
+                            if simpleEnoughForSingleLine subJv then
+                                row
+                                    [ onWithoutPropagation "click" <| JsonAddField parents field subJv
+                                    , pointer
+                                    ]
+                                    [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ " : "
+                                    , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <|
+                                        viewJsonValue (parents ++ [ field ]) subJv
+                                    ]
+
+                            else
+                                column
+                                    [ onWithoutPropagation "click" <| JsonAddField parents field subJv
+                                    , pointer
+                                    , spacing 10
+                                    ]
+                                    [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ " : "
+                                    , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg, padding_ 0 0 0 20 ] <|
+                                        viewJsonValue (parents ++ [ field ]) subJv
+                                    ]
                         )
-                    |> column [ spacing 10 ]
+                    |> column [ spacing 5, padding_ 0 0 0 20 ]
+                , text "}"
                 ]
+
+
+simpleEnoughForSingleLine jv =
+    not (isRecord jv)
+
+
+isRecord jv =
+    case jv of
+        JObject _ ->
+            True
+
+        _ ->
+            False

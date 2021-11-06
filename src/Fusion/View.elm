@@ -8,6 +8,7 @@ import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
 import Fusion.Types exposing (..)
+import View.Helpers exposing (..)
 
 
 blue =
@@ -43,8 +44,13 @@ charcoal =
 
 
 viewType t =
-    row [ spacing 10, padding 20, Font.family [ Font.monospace ] ]
-        [ el [ Border.width 1, Border.color blue ] <| typeRich t
+    let
+        debug =
+            -- [ Border.width 1, Border.color blue ]
+            []
+    in
+    row [ spacing 10, Font.family [ Font.monospace ] ]
+        [ el debug <| typeRich t
         ]
 
 
@@ -55,7 +61,7 @@ typeString indent stub =
             typeString (indent + 1)
 
         i =
-            String.repeat indent " "
+            String.repeat (indent * 2) " "
     in
     case stub of
         TString ->
@@ -96,7 +102,7 @@ typeString indent stub =
                     fields
                         |> List.map
                             (\( fname, ttype ) ->
-                                fname ++ ": " ++ recurse ttype
+                                fname ++ " : " ++ recurse ttype
                             )
                         |> String.join ("\n" ++ i ++ ", ")
             in
@@ -122,11 +128,15 @@ typeString indent stub =
 
 typeRich stub =
     let
+        debug =
+            -- Border.width 1
+            attrNone
+
         estyle =
-            [ paddingXY 5 2, Border.width 1 ]
+            [ paddingXY 5 2, debug ]
 
         tstyle =
-            [ Font.color orange, paddingXY 5 2, Border.width 1, Border.color white ]
+            [ Font.color orange, paddingXY 5 2, debug, Border.color white ]
     in
     case stub of
         TString ->
@@ -175,11 +185,21 @@ typeRich stub =
                     fields
                         |> List.map
                             (\( fname, ttype ) ->
-                                row [ padding 5, spacing 5 ]
-                                    [ el [ alignTop ] <| text fname
-                                    , el [ alignTop, Font.color purple ] <| text " : "
-                                    , typeRich ttype
-                                    ]
+                                if simpleEnoughForSingleLine ttype then
+                                    row [ padding 5, spacing 0, padding_ 0 0 0 20 ]
+                                        [ el [ alignTop ] <| text fname
+                                        , el [ alignTop, Font.color purple ] <| text " : "
+                                        , typeRich ttype
+                                        ]
+
+                                else
+                                    column [ padding 5, spacing 0, padding_ 0 0 0 20 ]
+                                        [ row []
+                                            [ el [ alignTop ] <| text fname
+                                            , el [ alignTop, Font.color purple ] <| text " : "
+                                            ]
+                                        , typeRich ttype
+                                        ]
                             )
             in
             case name of
@@ -216,3 +236,12 @@ typeRich stub =
 
         TUnimplemented ->
             el [ Font.color red ] <| text "TUnimplemented"
+
+
+simpleEnoughForSingleLine ttype =
+    case ttype of
+        TRecord name params fields ->
+            False
+
+        _ ->
+            True

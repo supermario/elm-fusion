@@ -1,7 +1,5 @@
 module Helpers exposing (..)
 
-import Element exposing (..)
-import Html.Events
 import Http
 import Json.Decode as D
 import Regex
@@ -104,12 +102,3 @@ regexSubmatchFirst regex string =
                     _ ->
                         Nothing
            )
-
-
-onWithoutPropagation : String -> msg -> Attribute msg
-onWithoutPropagation event msg =
-    htmlAttribute <| Html.Events.stopPropagationOn event (D.succeed ( msg, True ))
-
-
-padding_ t r b l =
-    paddingEach { top = t, right = r, bottom = b, left = l }
