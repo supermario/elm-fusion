@@ -10,6 +10,7 @@ import VariableDefinition exposing (VariableDefinition)
 
 type Page
     = FusionHttp
+    | TestVisual
 
 
 type alias FrontendModel =

@@ -11,6 +11,7 @@ import Element.Background as Background
 import Element.Font as Font
 import Env
 import Fusion.HTTP exposing (..)
+import Fusion.JsonTest
 import Fusion.Types exposing (..)
 import Helpers exposing (..)
 import Html
@@ -245,6 +246,9 @@ view model =
                     [ case model.page of
                         FusionHttp ->
                             Fusion.HTTP.view model
+
+                        TestVisual ->
+                            Fusion.JsonTest.view
                     ]
                 ]
         ]

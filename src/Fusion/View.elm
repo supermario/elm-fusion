@@ -61,7 +61,7 @@ typeString indent stub =
             typeString (indent + 1)
 
         i =
-            String.repeat (indent * 2) " "
+            String.repeat (indent * 4) " "
     in
     case stub of
         TString ->

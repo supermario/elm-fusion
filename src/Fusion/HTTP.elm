@@ -510,8 +510,8 @@ elmPagesCodeGen model =
                 EmptyDecoder ->
                     "D.fail \"TODO you can create a decoder through the UI above\""
 
-                FusionType tType ->
-                    Fusion.Json.decoderFromTType (Fusion.Transform.mapToType tType)
+                FusionType mtype ->
+                    Fusion.Json.decoderFromMType 0 mtype
     in
     """import DataSource.Http
 import Pages.Secrets
@@ -538,7 +538,7 @@ elmHttpCodeGen model =
                             "D.fail \"TODO you can create a decoder through the UI above\""
 
                         FusionType mType ->
-                            Fusion.Json.decoderFromTType (Fusion.Transform.mapToType mType)
+                            Fusion.Json.decoderFromMType 0 mType
                     )
                         |> indent
                    )
@@ -599,10 +599,10 @@ viewFusionDecoder model =
         EmptyDecoder ->
             text "Click on a JSON response value on the left to get started!"
 
-        FusionType ttype ->
+        FusionType mtype ->
             column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                 [ button [] ResetDecoder "Reset"
-                , text <| Fusion.Json.decoderFromTType (Fusion.Transform.mapToType ttype)
+                , text <| Fusion.Json.decoderFromMType 0 mtype
                 ]
 
 

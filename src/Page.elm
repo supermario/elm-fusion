@@ -21,12 +21,16 @@ pageToPath page =
         FusionHttp ->
             "/fusion"
 
+        TestVisual ->
+            "/test/visual"
+
 
 pathToPage : Url -> Page
 pathToPage url =
     let
         match =
             [ map FusionHttp (s "fusion")
+            , map TestVisual (s "test" </> s "visual")
             ]
                 |> oneOf
                 |> (\parser -> parse parser url)
@@ -43,6 +47,9 @@ pageName page =
     case page of
         FusionHttp ->
             "Fusion"
+
+        TestVisual ->
+            "Test | Visual"
 
 
 urlClicked model urlRequest =
