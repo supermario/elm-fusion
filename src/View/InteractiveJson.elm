@@ -36,7 +36,7 @@ viewJsonValue parents jv =
                         "false"
 
         JNull ->
-            text "null"
+            paragraph [ Font.color orange ] [ text "null" ]
 
         JList list ->
             list

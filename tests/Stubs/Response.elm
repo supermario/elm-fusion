@@ -13,7 +13,7 @@ basicJson =
       "favorite": "Chocolate",
       "address" : {
           "line1": "123 Test St",
-          "line2": "Testburbia",
+          "line2": null,
           "state": "NSW",
           "country": "AU"
       }

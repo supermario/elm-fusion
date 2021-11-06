@@ -31,7 +31,7 @@ decoderFromMType indent mtype =
             "D.list (" ++ recurse mtype_ ++ ")"
 
         MCustom name tParams params jp ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
+            "Debug.crash \"unimplemented decoderFromMType: " ++ toString mtype ++ "\""
 
         MRecord name tParams fields jp ->
             case name of
@@ -82,18 +82,20 @@ decoderFromMType indent mtype =
                         |> String.join "\n"
 
         MParam name ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
+            if name == "unknown" then
+                "(Debug.crash \"unspecified type\")"
+
+            else
+                "Debug.crash \"unimplemented decoderFromMType: " ++ toString mtype ++ "\""
 
         MMaybe mtype_ jp ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
+            "(D.nullable " ++ recurse mtype_ ++ ")"
 
-        -- |> List.intersperse "\n"
-        -- "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
         MRecursive name ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
+            "Debug.crash \"unimplemented decoderFromMType: " ++ toString mtype ++ "\""
 
         MUnimplemented ->
-            "Debug.crash \"unimplemented decoderFromTtype: " ++ toString mtype ++ "\""
+            "Debug.crash \"unimplemented decoderFromMType: " ++ toString mtype ++ "\""
 
 
 parenthesisIfNeeded indent mtype =

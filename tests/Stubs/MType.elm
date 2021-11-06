@@ -13,7 +13,7 @@ basic2LevelRecord =
           , MRecord "Unknown"
                 []
                 [ ( "line1", MString (At [] "line1") )
-                , ( "line2", MString (At [] "line2") )
+                , ( "line2", MMaybe (MParam "unknown") (At [] "line2") )
                 , ( "state", MString (At [] "state") )
                 , ( "country", MString (At [] "country") )
                 ]
