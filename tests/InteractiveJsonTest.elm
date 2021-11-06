@@ -4,7 +4,9 @@ import Dict
 import Expect
 import Frontend
 import Fusion.HTTP exposing (..)
+import Fusion.Operation exposing (..)
 import Fusion.Types exposing (..)
+import Stubs.MType exposing (..)
 import Stubs.Response
 import Test exposing (Test, describe, test)
 import Types exposing (..)
@@ -54,7 +56,10 @@ suite =
                         expected =
                             MRecord "Unknown"
                                 []
-                                [ ( "address"
+                                [ ( "first", MString (At [] "first") )
+                                , ( "last", MString (At [] "last") )
+                                , ( "favorite", MString (At [] "favorite") )
+                                , ( "address"
                                   , MRecord "Unknown"
                                         []
                                         [ ( "line1", MString (At [] "line1") )
@@ -64,9 +69,37 @@ suite =
                                         ]
                                         (At [] "address")
                                   )
-                                , ( "favorite", MString (At [] "favorite") )
-                                , ( "first", MString (At [] "first") )
+                                ]
+                                Root
+                    in
+                    shadowUpdate msg existingDecoder
+                        |> Expect.equal (FusionType expected)
+            ]
+        , describe "fusionRemove"
+            [ test "removing a single nested field" <|
+                \() ->
+                    let
+                        existingDecoder =
+                            FusionType basic2LevelRecord
+
+                        msg =
+                            FusionRemoveField (MString (At [] "state"))
+
+                        expected =
+                            MRecord "Unknown"
+                                []
+                                [ ( "first", MString (At [] "first") )
                                 , ( "last", MString (At [] "last") )
+                                , ( "favorite", MString (At [] "favorite") )
+                                , ( "address"
+                                  , MRecord "Unknown"
+                                        []
+                                        [ ( "line1", MString (At [] "line1") )
+                                        , ( "line2", MString (At [] "line2") )
+                                        , ( "country", MString (At [] "country") )
+                                        ]
+                                        (At [] "address")
+                                  )
                                 ]
                                 Root
                     in
@@ -83,6 +116,9 @@ shadowUpdate msg existingDecoder =
 
         JsonAddAll parents jv ->
             fusionAddAll parents jv existingDecoder
+
+        FusionRemoveField mtype ->
+            fusionRemove mtype existingDecoder
 
         x ->
             Debug.todo <| "missing case: " ++ Debug.toString x

@@ -12,6 +12,7 @@ import Element.Font as Font
 import Env
 import Fusion.HTTP exposing (..)
 import Fusion.JsonTest
+import Fusion.Operation
 import Fusion.Types exposing (..)
 import Helpers exposing (..)
 import Html
@@ -24,6 +25,7 @@ import OAuth.AuthorizationCode as OAuth
 import Page
 import RemoteData exposing (RemoteData(..))
 import Request
+import Stubs.MType
 import Stubs.Response
 import Types exposing (..)
 import Url exposing (Protocol(..), Url)
@@ -170,10 +172,13 @@ update msg model =
             ( { model | fusionDecoder = EmptyDecoder }, Cmd.none )
 
         JsonAddField parents f jv ->
-            ( { model | fusionDecoder = fusionAddField parents f jv model.fusionDecoder }, Cmd.none )
+            ( { model | fusionDecoder = Fusion.Operation.fusionAddField parents f jv model.fusionDecoder }, Cmd.none )
 
         JsonAddAll parents jv ->
-            ( { model | fusionDecoder = fusionAddAll parents jv model.fusionDecoder }, Cmd.none )
+            ( { model | fusionDecoder = Fusion.Operation.fusionAddAll parents jv model.fusionDecoder }, Cmd.none )
+
+        FusionRemoveField mtype ->
+            ( { model | fusionDecoder = Fusion.Operation.fusionRemove mtype model.fusionDecoder }, Cmd.none )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )

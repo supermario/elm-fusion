@@ -40,11 +40,11 @@ mapToType mType =
             TUnimplemented
 
 
-decoderToType : FusionDecoder -> TType
-decoderToType decoder =
+decoderToMType : FusionDecoder -> MType
+decoderToMType decoder =
     case decoder of
         EmptyDecoder ->
-            TUnimplemented
+            MUnimplemented
 
         FusionType mType ->
-            mapToType mType
+            mType

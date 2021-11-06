@@ -48,6 +48,7 @@ type FrontendMsg
     | ResetDecoder
     | JsonAddField (List String) String JsonValue
     | JsonAddAll (List String) JsonValue
+    | FusionRemoveField MType
     | NoOpFrontendMsg
 
 

@@ -91,3 +91,7 @@ onWithoutPropagation event msg =
 
 attrNone =
     htmlAttribute <| Html.Attributes.attribute "data-none" ""
+
+
+class s =
+    htmlAttribute <| Html.Attributes.class s

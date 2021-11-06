@@ -1,6 +1,6 @@
 module Fusion.View exposing (..)
 
-import Colors exposing (fromHex)
+import Colors exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -8,6 +8,8 @@ import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
 import Fusion.Types exposing (..)
+import Icon
+import Types exposing (..)
 import View.Helpers exposing (..)
 
 
@@ -43,14 +45,19 @@ charcoal =
     fromHex "#333"
 
 
-viewType t =
+type alias Actions msg =
+    { delete : MType -> msg }
+
+
+viewType : Actions msg -> MType -> Element msg
+viewType actions t =
     let
         debug =
-            -- [ Border.width 1, Border.color blue ]
-            []
+            -- [ Border.width 1, Border.color blue, width fill ]
+            [ width fill ]
     in
-    row [ spacing 10, Font.family [ Font.monospace ] ]
-        [ el debug <| typeRich t
+    row [ spacing 10, Font.family [ Font.monospace ], width fill ]
+        [ el debug <| typeRich actions t
         ]
 
 
@@ -126,7 +133,8 @@ typeString indent stub =
             "TUnimplemented"
 
 
-typeRich stub =
+typeRich : Actions msg -> MType -> Element msg
+typeRich actions mtype_ =
     let
         debug =
             -- Border.width 1
@@ -137,25 +145,28 @@ typeRich stub =
 
         tstyle =
             [ Font.color orange, paddingXY 5 2, debug, Border.color white ]
+
+        recurse =
+            typeRich actions
     in
-    case stub of
-        TString ->
+    case mtype_ of
+        MString jp ->
             el tstyle (text <| "String")
 
-        TInt ->
+        MInt jp ->
             el tstyle (text <| "Int")
 
-        TFloat ->
+        MFloat jp ->
             el tstyle (text <| "Float")
 
-        TBool ->
+        MBool jp ->
             el tstyle (text <| "Bool")
 
-        TList ttype ->
+        MList ttype jp ->
             row (estyle ++ [ spacing 5 ])
-                ([ el [ Font.color orange, alignTop ] (text <| "List") ] ++ [ typeRich ttype ])
+                ([ el [ Font.color orange, alignTop ] (text <| "List") ] ++ [ recurse ttype ])
 
-        TCustom name params constructors ->
+        MCustom name params constructors jp ->
             let
                 viewConstructors =
                     constructors
@@ -164,7 +175,7 @@ typeRich stub =
                                 let
                                     cparams_ =
                                         cparams
-                                            |> List.map (\param -> typeRich param)
+                                            |> List.map (\param -> recurse param)
                                 in
                                 row []
                                     ([ text <| "|", el [ Font.color orange ] <| text cname ] ++ cparams_)
@@ -179,44 +190,56 @@ typeRich stub =
                     ++ viewConstructors
                 )
 
-        TRecord name params fields ->
+        MRecord name params fields jp ->
             let
                 viewFields =
                     fields
                         |> List.map
-                            (\( fname, ttype ) ->
-                                if simpleEnoughForSingleLine ttype then
-                                    row [ padding 5, spacing 0, padding_ 0 0 0 20 ]
+                            (\( fname, mtype ) ->
+                                if simpleEnoughForSingleLine mtype then
+                                    row
+                                        [ padding 5
+                                        , spacing 0
+                                        , padding_ 0 0 0 20
+                                        , inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ])
+                                        , width fill
+                                        ]
                                         [ el [ alignTop ] <| text fname
                                         , el [ alignTop, Font.color purple ] <| text " : "
-                                        , typeRich ttype
+                                        , recurse mtype
                                         ]
 
                                 else
-                                    column [ padding 5, spacing 0, padding_ 0 0 0 20 ]
+                                    column
+                                        [ padding 5
+                                        , spacing 0
+                                        , padding_ 0 0 0 20
+                                        , inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ])
+                                        , width fill
+                                        ]
                                         [ row []
                                             [ el [ alignTop ] <| text fname
                                             , el [ alignTop, Font.color purple ] <| text " : "
                                             ]
-                                        , typeRich ttype
+                                        , recurse mtype
                                         ]
                             )
             in
             case name of
                 "Unknown" ->
-                    column []
-                        ([ row [ spacing 5, padding 5 ]
+                    column [ width fill ]
+                        ([ row [ spacing 5, padding 5, width fill ]
                             [ el [ Font.color purple ] <| text "{"
                             ]
                          ]
                             ++ viewFields
-                            ++ [ row [ spacing 5, padding 5 ] [ el [ Font.color purple ] <| text "}" ]
+                            ++ [ row [ spacing 5, padding 5, width fill ] [ el [ Font.color purple ] <| text "}" ]
                                ]
                         )
 
                 _ ->
-                    column []
-                        ([ row [ spacing 5, padding 5 ]
+                    column [ width fill ]
+                        ([ row [ spacing 5, padding 5, width fill ]
                             [ el [ Font.color purple ] <| text "type alias"
                             , el [ Font.color orange ] (text <| name) --++ " custom")
                             ]
@@ -224,23 +247,24 @@ typeRich stub =
                             ++ viewFields
                         )
 
-        TParam name ->
+        MParam name ->
             el [ Font.color red ] <| text name
 
-        TMaybe ttype ->
+        MMaybe mtype jp ->
             row (estyle ++ [ spacing 5 ])
-                ([ el [ Font.color orange ] (text <| "Maybe") ] ++ [ typeRich ttype ])
+                ([ el [ Font.color orange ] (text <| "Maybe") ] ++ [ recurse mtype ])
 
-        TRecursive name ->
+        MRecursive name ->
             el [ Font.color orange ] <| text name
 
-        TUnimplemented ->
+        MUnimplemented ->
             el [ Font.color red ] <| text "TUnimplemented"
 
 
+simpleEnoughForSingleLine : MType -> Bool
 simpleEnoughForSingleLine ttype =
     case ttype of
-        TRecord name params fields ->
+        MRecord name params fields jp ->
             False
 
         _ ->

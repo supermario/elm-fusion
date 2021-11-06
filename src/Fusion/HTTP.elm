@@ -13,6 +13,7 @@ import Element.Lazy
 import Elm
 import ElmHttpGenerator
 import Fusion.Json
+import Fusion.Operation as Op
 import Fusion.Transform
 import Fusion.Types exposing (..)
 import Fusion.View
@@ -220,148 +221,6 @@ toHttpMethod method =
             "POST"
 
 
-guessElmTypeForJsonValue : JsonValue -> JsonPath -> MType
-guessElmTypeForJsonValue jv jsonPath =
-    case jv of
-        JInt int ->
-            MInt jsonPath
-
-        JFloat float ->
-            MFloat jsonPath
-
-        JString string ->
-            MString jsonPath
-
-        JBool bool ->
-            MBool jsonPath
-
-        JNull ->
-            MMaybe (MParam "unknown") jsonPath
-
-        JList jvs ->
-            case jvs of
-                v :: _ ->
-                    -- @TODO this aint right
-                    MList (guessElmTypeForJsonValue v jsonPath) jsonPath
-
-                [] ->
-                    MList (MParam "unknown") jsonPath
-
-        JObject fields ->
-            fields
-                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ (At [] name) ))
-                -- @TODO this aint right
-                |> (\fields_ -> MRecord "Unknown" [] fields_ jsonPath)
-
-
-fusionAddField parents fieldName jv decoder =
-    let
-        x =
-            log "fusionAddField" ( parents, fieldName, jv )
-    in
-    FusionType <|
-        case decoder of
-            EmptyDecoder ->
-                let
-                    _ =
-                        log "fusionAddField" "first field"
-                in
-                mTypeAddField parents fieldName jv (MRecord "Unknown" [] [] Root)
-
-            FusionType mtype ->
-                let
-                    _ =
-                        log "fusionAddField" "adding field"
-                in
-                mTypeAddField parents fieldName jv mtype
-
-
-mTypeAddField parents fieldName jv mtype =
-    case mtype of
-        MRecord name tParams fields jsonPath ->
-            if List.find (\( f, t ) -> f == fieldName) fields == Nothing then
-                case parents of
-                    [] ->
-                        let
-                            _ =
-                                log "mTypeAddField" "0 parents, appending field"
-                        in
-                        MRecord name
-                            tParams
-                            (List.append fields [ ( fieldName, guessElmTypeForJsonValue jv (At parents fieldName) ) ]
-                                |> List.uniqueBy (\( n, f ) -> n)
-                             -- |> List.sortBy (\( n, f ) -> n)
-                            )
-                            jsonPath
-
-                    p :: ps ->
-                        let
-                            _ =
-                                log "mTypeAddField" ("parent " ++ p ++ " upserting field")
-                        in
-                        MRecord name
-                            tParams
-                            (fields
-                                |> onRecordField p (\( n, mtype_ ) -> ( n, mTypeAddField ps fieldName jv mtype_ ))
-                            )
-                            jsonPath
-
-            else
-                let
-                    _ =
-                        log "mTypeAddField" "field already exists"
-                in
-                -- Nothing to add
-                mtype
-
-        _ ->
-            let
-                _ =
-                    log "mTypeAddField" "cannot add to non-record type"
-            in
-            -- Cannot add fields to non-record type
-            mtype
-
-
-onRecordField fieldName fn fields =
-    case List.find (\( f, t ) -> f == fieldName) fields of
-        Just _ ->
-            fields
-                |> List.updateIf (\( f, t ) -> f == fieldName) fn
-
-        Nothing ->
-            List.append fields [ fn ( fieldName, MRecord "Unknown" [] [] Root ) ]
-
-
-fusionAddAll : List String -> JsonValue -> Fusion.Types.FusionDecoder -> Fusion.Types.FusionDecoder
-fusionAddAll parents jv decoder =
-    log "fusionAddAll" <|
-        case jv of
-            JObject fields ->
-                fields
-                    |> List.foldl
-                        (\( f, v ) d ->
-                            -- let
-                            --     x =
-                            --         log ("jv for field: " ++ f) v
-                            --
-                            -- in
-                            fusionAddField parents f v d
-                        )
-                        decoder
-
-            _ ->
-                let
-                    _ =
-                        todo <| "todo JsonAddAll" ++ toString ( parents, jv )
-                in
-                decoder
-
-
-
--- Record (List.append fields [ fieldName ] |> List.unique)
-
-
 view : Model -> Element Msg
 view model =
     column [ width fill, spacing 20 ]
@@ -438,16 +297,31 @@ view model =
                                         ]
                                     , section "Response JSON inferred type"
                                         [ row [ width fill, alignTop, spacing 20 ]
-                                            [ el [ width fill, alignTop ] <| viewFusionJsonInferredTypeString ast
-                                            , el [ width fill, alignTop ] <| viewFusionJsonInferredTypeRich ast
+                                            [ el [ width fill, alignTop ] <|
+                                                el [ alignTop, Font.family [ Font.monospace ], width fill ] <|
+                                                    text <|
+                                                        Fusion.View.typeString 0 <|
+                                                            Fusion.Transform.mapToType <|
+                                                                Op.guessElmTypeForJsonValue ast Root
+                                            , el [ width fill, alignTop ] <|
+                                                Fusion.View.viewType { delete = always NoOpFrontendMsg } <|
+                                                    Op.guessElmTypeForJsonValue ast Root
                                             ]
                                         ]
                                     ]
                                 , column [ width fill, spacing 20, alignTop ]
-                                    [ section "Type builder"
-                                        [ Fusion.View.viewType <| Fusion.Transform.decoderToType model.fusionDecoder
-                                        , viewFusionDecoder model
-                                        ]
+                                    [ section "Type builder" <|
+                                        case model.fusionDecoder of
+                                            EmptyDecoder ->
+                                                [ text "Click on a JSON response value label on the left to get started!" ]
+
+                                            FusionType mtype ->
+                                                [ Fusion.View.viewType { delete = FusionRemoveField } <| Fusion.Transform.decoderToMType model.fusionDecoder
+                                                , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                                                    [ button [] ResetDecoder "Reset"
+                                                    , text <| Fusion.Json.decoderFromMType 0 mtype
+                                                    ]
+                                                ]
                                     ]
                                 ]
                             , section "Code generators"
@@ -592,18 +466,6 @@ requestBodyString req =
             body
 
 
-viewFusionDecoder model =
-    case model.fusionDecoder of
-        EmptyDecoder ->
-            text "Click on a JSON response value on the left to get started!"
-
-        FusionType mtype ->
-            column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                [ button [] ResetDecoder "Reset"
-                , text <| Fusion.Json.decoderFromMType 0 mtype
-                ]
-
-
 decodeJsonAst : D.Decoder JsonValue
 decodeJsonAst =
     D.oneOf
@@ -615,20 +477,6 @@ decodeJsonAst =
         , D.list (D.lazy (\_ -> decodeJsonAst)) |> D.map JList
         , D.keyValuePairs (D.lazy (\_ -> decodeJsonAst)) |> D.map JObject
         ]
-
-
-viewFusionJsonInferredTypeRich : JsonValue -> Element msg
-viewFusionJsonInferredTypeRich jsonValue =
-    Fusion.View.viewType <| Fusion.Transform.mapToType <| guessElmTypeForJsonValue jsonValue Root
-
-
-viewFusionJsonInferredTypeString : JsonValue -> Element msg
-viewFusionJsonInferredTypeString jsonValue =
-    el [ alignTop, Font.family [ Font.monospace ], width fill ] <|
-        text <|
-            Fusion.View.typeString 0 <|
-                Fusion.Transform.mapToType <|
-                    guessElmTypeForJsonValue jsonValue Root
 
 
 httpErrorToString : HttpError -> String
