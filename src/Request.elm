@@ -38,16 +38,18 @@ type Body
 convert : Dict String VariableDefinition -> Request -> Fusion.Types.Request
 convert variables request =
     let
+        basicAuthEncoded basicAuth =
+            "Basic "
+                ++ Base64.encode (InterpolatedField.interpolate variables basicAuth.username ++ ":" ++ InterpolatedField.interpolate variables basicAuth.password)
+
         authHeaders : List Http.Header
         authHeaders =
             case request.auth of
                 Just (BasicAuth basicAuth) ->
                     [ Http.header
                         "Authorization"
-                        (("Basic "
-                            ++ Base64.encode (InterpolatedField.interpolate variables basicAuth.username ++ ":" ++ InterpolatedField.interpolate variables basicAuth.password)
-                         )
-                            |> Debug.log "Authorization header"
+                        (basicAuthEncoded basicAuth
+                         -- |> Debug.log "Authorization header"
                         )
                     ]
 
