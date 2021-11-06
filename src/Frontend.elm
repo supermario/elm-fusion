@@ -23,7 +23,7 @@ import OAuth.AuthorizationCode as OAuth
 import Page
 import RemoteData exposing (RemoteData(..))
 import Request
-import Stub
+import Stubs.Response
 import Types exposing (..)
 import Url exposing (Protocol(..), Url)
 
@@ -172,22 +172,7 @@ update msg model =
             ( { model | fusionDecoder = fusionAddField parents f jv model.fusionDecoder }, Cmd.none )
 
         JsonAddAll parents jv ->
-            case jv of
-                JObject fields ->
-                    fields
-                        |> List.foldl
-                            (\( f, v ) m ->
-                                { m | fusionDecoder = fusionAddField parents f jv m.fusionDecoder }
-                            )
-                            model
-                        |> (\m -> ( m, Cmd.none ))
-
-                _ ->
-                    let
-                        _ =
-                            todo <| "todo JsonAddAll" ++ toString ( parents, jv )
-                    in
-                    ( model, Cmd.none )
+            ( { model | fusionDecoder = fusionAddAll parents jv model.fusionDecoder }, Cmd.none )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )

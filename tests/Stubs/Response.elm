@@ -1,4 +1,4 @@
-module Stub exposing (..)
+module Stubs.Response exposing (..)
 
 import Fusion.Types exposing (HttpError)
 import RemoteData exposing (RemoteData(..))

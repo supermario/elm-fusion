@@ -249,7 +249,7 @@ guessElmTypeForJsonValue jv jsonPath =
 
         JObject fields ->
             fields
-                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ jsonPath ))
+                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ (At [] name) ))
                 -- @TODO this aint right
                 |> (\fields_ -> MRecord "Unknown" [] fields_ jsonPath)
 
@@ -274,7 +274,7 @@ fusionAddField parents fieldName jv decoder =
                             MRecord name
                                 tParams
                                 (fields
-                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv jsonPath ) ]
+                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv (At parents fieldName) ) ]
                                     |> List.uniqueBy (\( n, f ) -> n)
                                     |> List.sortBy (\( n, f ) -> n)
                                 )
@@ -285,7 +285,7 @@ fusionAddField parents fieldName jv decoder =
                             MRecord name
                                 tParams
                                 (fields
-                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv jsonPath ) ]
+                                    |> List.append [ ( fieldName, guessElmTypeForJsonValue jv (At parents fieldName) ) ]
                                     |> List.uniqueBy (\( n, f ) -> n)
                                     |> List.sortBy (\( n, f ) -> n)
                                 )
@@ -294,6 +294,31 @@ fusionAddField parents fieldName jv decoder =
                 _ ->
                     -- Cannot add fields to non-record type
                     FusionType <| ttype
+
+
+fusionAddAll : List String -> JsonValue -> Fusion.Types.FusionDecoder -> Fusion.Types.FusionDecoder
+fusionAddAll parents jv decoder =
+    Debug.log "fusionAddAll" <|
+        case jv of
+            JObject fields ->
+                fields
+                    |> List.foldl
+                        (\( f, v ) d ->
+                            -- let
+                            --     x =
+                            --         Debug.log ("jv for field: " ++ f) v
+                            --
+                            -- in
+                            fusionAddField parents f v d
+                        )
+                        decoder
+
+            _ ->
+                let
+                    _ =
+                        todo <| "todo JsonAddAll" ++ toString ( parents, jv )
+                in
+                decoder
 
 
 
@@ -374,8 +399,8 @@ view model =
                                     [ column [ width fill, Font.family [ Font.monospace ], alignTop ]
                                         [ viewAst [] ast ]
                                     ]
-                                , column [ width fill, spacing 20 ]
-                                    [ section "Selection builder"
+                                , column [ width fill, spacing 20, alignTop ]
+                                    [ section "Type builder"
                                         [ viewFusionDecoder model
                                         ]
                                     , section "Inferred type"
@@ -580,7 +605,7 @@ viewAst parents ast =
                                 , pointer
                                 ]
                                 [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ ": "
-                                , viewAst (parents ++ [ field ]) jv
+                                , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <| viewAst (parents ++ [ field ]) jv
                                 ]
                         )
                     |> column [ spacing 10 ]
