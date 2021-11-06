@@ -13,7 +13,7 @@ import Element.Lazy
 import Elm
 import ElmHttpGenerator
 import Fusion.Json
-import Fusion.Map exposing (mapToType)
+import Fusion.Transform
 import Fusion.Types exposing (..)
 import Fusion.View
 import Helpers exposing (..)
@@ -221,6 +221,7 @@ toHttpMethod method =
             "POST"
 
 
+guessElmTypeForJsonValue : JsonValue -> JsonPath -> MType
 guessElmTypeForJsonValue jv jsonPath =
     case jv of
         JInt int ->
@@ -395,19 +396,21 @@ view model =
                     Ok ast ->
                         column [ width fill, spacing 20 ]
                             [ row [ width fill, spacing 20 ]
-                                [ section "Interactive JSON response"
-                                    [ column [ width fill, Font.family [ Font.monospace ], alignTop ]
-                                        [ viewAst [] ast ]
+                                [ column [ width fill, alignTop, spacing 20 ]
+                                    [ section "Interactive JSON response"
+                                        [ viewInteractiveJson [] ast
+                                        ]
+                                    , section "Response JSON inferred type"
+                                        [ row [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                                            [ el [ width fill ] <| viewFusionJsonInferredTypeString ast
+                                            , el [ width fill ] <| viewFusionJsonInferredTypeRich ast
+                                            ]
+                                        ]
                                     ]
                                 , column [ width fill, spacing 20, alignTop ]
                                     [ section "Type builder"
-                                        [ viewFusionDecoder model
-                                        ]
-                                    , section "Inferred type"
-                                        [ column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                            [ viewFusionJsonInferredTypeString ast
-                                            , viewFusionJsonInferredTypeRich ast
-                                            ]
+                                        [ Fusion.View.viewType <| Fusion.Transform.decoderToType model.fusionDecoder
+                                        , viewFusionDecoder model
                                         ]
                                     ]
                                 ]
@@ -470,7 +473,7 @@ elmPagesCodeGen model =
                     "D.fail \"TODO you can create a decoder through the UI above\""
 
                 FusionType tType ->
-                    Fusion.Json.decoderFromTType (mapToType tType)
+                    Fusion.Json.decoderFromTType (Fusion.Transform.mapToType tType)
     in
     """import DataSource.Http
 import Pages.Secrets
@@ -497,7 +500,7 @@ elmHttpCodeGen model =
                             "D.fail \"TODO you can create a decoder through the UI above\""
 
                         FusionType mType ->
-                            Fusion.Json.decoderFromTType (mapToType mType)
+                            Fusion.Json.decoderFromTType (Fusion.Transform.mapToType mType)
                     )
                         |> indent
                    )
@@ -561,12 +564,17 @@ viewFusionDecoder model =
         FusionType ttype ->
             column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
                 [ button [] ResetDecoder "Reset"
-                , text <| Fusion.Json.decoderFromTType (mapToType ttype)
+                , text <| Fusion.Json.decoderFromTType (Fusion.Transform.mapToType ttype)
                 ]
 
 
-viewAst parents ast =
-    case ast of
+viewInteractiveJson parents jsonValue =
+    el [ width fill, Font.family [ Font.monospace ], alignTop ] <|
+        viewJsonValue [] jsonValue
+
+
+viewJsonValue parents jv =
+    case jv of
         JInt int ->
             paragraph [ Font.color orange ] [ text <| String.fromInt int ]
 
@@ -590,22 +598,22 @@ viewAst parents ast =
 
         JList list ->
             list
-                |> List.map (viewAst parents)
+                |> List.map (viewJsonValue parents)
                 -- |> List.intersperse (text ",")
                 |> column [ spacing 10 ]
 
         JObject fields ->
             column [ spacing 10 ]
-                [ button [] (JsonAddAll parents ast) "Add all"
+                [ button [] (JsonAddAll parents jv) "Add all"
                 , fields
                     |> List.map
-                        (\( field, jv ) ->
+                        (\( field, subJv ) ->
                             row
-                                [ onWithoutPropagation "click" <| JsonAddField parents field jv
+                                [ onWithoutPropagation "click" <| JsonAddField parents field subJv
                                 , pointer
                                 ]
                                 [ el [ alignTop, mouseOver [ Background.color grey ] ] <| text <| field ++ ": "
-                                , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <| viewAst (parents ++ [ field ]) jv
+                                , el [ width fill, onWithoutPropagation "click" NoOpFrontendMsg ] <| viewJsonValue (parents ++ [ field ]) subJv
                                 ]
                         )
                     |> column [ spacing 10 ]
@@ -625,12 +633,14 @@ decodeJsonAst =
         ]
 
 
-viewFusionJsonInferredTypeRich ast =
-    Fusion.View.viewType <| mapToType <| guessElmTypeForJsonValue ast Root
+viewFusionJsonInferredTypeRich : JsonValue -> Element msg
+viewFusionJsonInferredTypeRich jsonValue =
+    Fusion.View.viewType <| Fusion.Transform.mapToType <| guessElmTypeForJsonValue jsonValue Root
 
 
-viewFusionJsonInferredTypeString ast =
-    text <| Fusion.View.typeString 0 <| mapToType <| guessElmTypeForJsonValue ast Root
+viewFusionJsonInferredTypeString : JsonValue -> Element msg
+viewFusionJsonInferredTypeString jsonValue =
+    text <| Fusion.View.typeString 0 <| Fusion.Transform.mapToType <| guessElmTypeForJsonValue jsonValue Root
 
 
 httpErrorToString : HttpError -> String

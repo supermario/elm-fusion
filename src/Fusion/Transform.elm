@@ -1,4 +1,4 @@
-module Fusion.Map exposing (..)
+module Fusion.Transform exposing (..)
 
 import Fusion.Types exposing (..)
 
@@ -38,3 +38,13 @@ mapToType mType =
 
         MUnimplemented ->
             TUnimplemented
+
+
+decoderToType : FusionDecoder -> TType
+decoderToType decoder =
+    case decoder of
+        EmptyDecoder ->
+            TUnimplemented
+
+        FusionType mType ->
+            mapToType mType
