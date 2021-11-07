@@ -1,6 +1,81 @@
 module Fusion.Transform exposing (..)
 
 import Fusion.Types exposing (..)
+import Transform
+
+
+recurseMType : (MType -> MType) -> MType -> MType
+recurseMType fn mtype =
+    case mtype of
+        MInt jp ->
+            MInt jp
+
+        MFloat jp ->
+            MFloat jp
+
+        MString jp ->
+            MString jp
+
+        MBool jp ->
+            MBool jp
+
+        MList mType_ jp ->
+            MList (fn mType_) jp
+
+        MCustom name params variants jp ->
+            MCustom name (List.map fn params) (List.map (\( l, v ) -> ( l, List.map fn v )) variants) jp
+
+        MRecord name params fields jp ->
+            MRecord name (List.map fn params) (List.map (\( l, v ) -> ( l, fn v )) fields) jp
+
+        MParam name ->
+            MParam name
+
+        MMaybe mType_ jp ->
+            MMaybe (fn mType_) jp
+
+        MRecursive name ->
+            MRecursive name
+
+        MUnimplemented ->
+            MUnimplemented
+
+
+recurseChildrenMType : (MType -> List MType) -> MType -> List MType
+recurseChildrenMType fn mtype =
+    case mtype of
+        MInt jp ->
+            []
+
+        MFloat jp ->
+            []
+
+        MString jp ->
+            []
+
+        MBool jp ->
+            []
+
+        MList mType_ jp ->
+            fn mType_
+
+        MCustom name params variants jp ->
+            List.map fn params ++ (List.map (\( l, v ) -> List.map fn v) variants |> List.concat) |> List.concat
+
+        MRecord name params fields jp ->
+            List.map fn params ++ List.map (\( l, v ) -> fn v) fields |> List.concat
+
+        MParam name ->
+            []
+
+        MMaybe mType_ jp ->
+            fn mType_
+
+        MRecursive name ->
+            []
+
+        MUnimplemented ->
+            []
 
 
 mapToType : MType -> TType

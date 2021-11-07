@@ -12,10 +12,10 @@ basic2LevelRecord =
         , ( "address"
           , MRecord "Unknown"
                 []
-                [ ( "line1", MString (At [] "line1") )
-                , ( "line2", MMaybe (MParam "unknown") (At [] "line2") )
-                , ( "state", MString (At [] "state") )
-                , ( "country", MString (At [] "country") )
+                [ ( "line1", MString (At [ "address" ] "line1") )
+                , ( "line2", MMaybe (MParam "unknown") (At [ "address" ] "line2") )
+                , ( "state", MString (At [ "address" ] "state") )
+                , ( "country", MString (At [ "address" ] "country") )
                 ]
                 (At [] "address")
           )
@@ -46,7 +46,7 @@ D.succeed
                 }
             )
             |> required "line1" D.string
-            |> required "line2" D.string
+            |> required "line2" (D.nullable (Debug.crash "unspecified type"))
             |> required "state" D.string
             |> required "country" D.string
         )

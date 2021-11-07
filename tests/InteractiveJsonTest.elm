@@ -62,10 +62,10 @@ suite =
                                 , ( "address"
                                   , MRecord "Unknown"
                                         []
-                                        [ ( "line1", MString (At [] "line1") )
-                                        , ( "line2", MString (At [] "line2") )
-                                        , ( "state", MString (At [] "state") )
-                                        , ( "country", MString (At [] "country") )
+                                        [ ( "line1", MString (At [ "address" ] "line1") )
+                                        , ( "line2", MString (At [ "address" ] "line2") )
+                                        , ( "state", MString (At [ "address" ] "state") )
+                                        , ( "country", MString (At [ "address" ] "country") )
                                         ]
                                         (At [] "address")
                                   )
@@ -83,7 +83,7 @@ suite =
                             FusionType basic2LevelRecord
 
                         msg =
-                            FusionRemoveField (MString (At [] "state"))
+                            FusionRemoveField (MString (At [ "address" ] "state"))
 
                         expected =
                             MRecord "Unknown"
@@ -94,9 +94,9 @@ suite =
                                 , ( "address"
                                   , MRecord "Unknown"
                                         []
-                                        [ ( "line1", MString (At [] "line1") )
-                                        , ( "line2", MString (At [] "line2") )
-                                        , ( "country", MString (At [] "country") )
+                                        [ ( "line1", MString (At [ "address" ] "line1") )
+                                        , ( "line2", MMaybe (MParam "unknown") (At [ "address" ] "line2") )
+                                        , ( "country", MString (At [ "address" ] "country") )
                                         ]
                                         (At [] "address")
                                   )

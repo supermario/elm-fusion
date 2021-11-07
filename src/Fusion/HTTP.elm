@@ -28,6 +28,7 @@ import Set exposing (Set)
 import Task exposing (Task)
 import Types exposing (..)
 import VariableDefinition exposing (VariableDefinition(..))
+import View.DecodePreview
 import View.Helpers exposing (..)
 import View.InteractiveJson
 
@@ -316,11 +317,19 @@ view model =
                                                 [ text "Click on a JSON response value label on the left to get started!" ]
 
                                             FusionType mtype ->
-                                                [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
-                                                , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                                    [ button [] ResetDecoder "Reset"
-                                                    , text <| Fusion.Json.decoderFromMType 0 mtype
+                                                [ row [ width fill ]
+                                                    [ column [ width fill, alignTop ]
+                                                        [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
+                                                        , button [] ResetDecoder "Reset"
+                                                        ]
+                                                    , column [ width fill, alignTop ]
+                                                        [ View.DecodePreview.view ast mtype
+                                                        ]
                                                     ]
+
+                                                -- , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
+                                                --     [ text <| Fusion.Json.decoderFromMType 0 mtype
+                                                --     ]
                                                 ]
                                     ]
                                 ]

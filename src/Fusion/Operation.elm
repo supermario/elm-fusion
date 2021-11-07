@@ -33,9 +33,17 @@ guessElmTypeForJsonValue jv jsonPath =
                     MList (MParam "unknown") jsonPath
 
         JObject fields ->
+            let
+                fieldPath name =
+                    case jsonPath of
+                        Root ->
+                            At [] name
+
+                        At parents field ->
+                            At (parents ++ [ field ]) name
+            in
             fields
-                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ (At [] name) ))
-                -- @TODO this aint right
+                |> List.map (\( name, jv_ ) -> ( name, guessElmTypeForJsonValue jv_ (fieldPath name) ))
                 |> (\fields_ -> MRecord "Unknown" [] fields_ jsonPath)
 
 
@@ -44,21 +52,22 @@ fusionAddField parents fieldName jv decoder =
         x =
             log "fusionAddField" ( parents, fieldName, jv )
     in
-    FusionType <|
-        case decoder of
-            EmptyDecoder ->
-                let
-                    _ =
-                        log "fusionAddField" "first field"
-                in
-                mTypeAddField parents fieldName jv (MRecord "Unknown" [] [] Root)
+    Debug.log "fusionAddFieldResult" <|
+        FusionType <|
+            case decoder of
+                EmptyDecoder ->
+                    let
+                        _ =
+                            log "fusionAddField" ( "first field", fieldName )
+                    in
+                    mTypeAddField parents fieldName jv (MRecord "Unknown" [] [] Root)
 
-            FusionType mtype ->
-                let
-                    _ =
-                        log "fusionAddField" "adding field"
-                in
-                mTypeAddField parents fieldName jv mtype
+                FusionType mtype ->
+                    let
+                        _ =
+                            log "fusionAddField" ( "adding field", fieldName )
+                    in
+                    mTypeAddField parents fieldName jv mtype
 
 
 fusionAddAll : List String -> JsonValue -> Fusion.Types.FusionDecoder -> Fusion.Types.FusionDecoder
@@ -118,7 +127,6 @@ mTypeAddField parents fieldName jv mtype =
                             tParams
                             (List.append fields [ ( fieldName, guessElmTypeForJsonValue jv (At parents fieldName) ) ]
                                 |> List.uniqueBy (\( n, f ) -> n)
-                             -- |> List.sortBy (\( n, f ) -> n)
                             )
                             jsonPath
 
