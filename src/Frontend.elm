@@ -57,11 +57,13 @@ init url key =
       , page = Page.pathToPage url
       , rawHeaders = ""
       , fusionDecoder = Fusion.Types.EmptyDecoder
+
+      -- , fusionDecoder = Fusion.Types.FusionType Stubs.MType.basic2LevelRecord
       , currentRequest = Fusion.HTTP.emptyRequest
       , lastPerformed = Nothing
+      , httpRequest = NotAsked
 
-      -- , httpRequest = NotAsked
-      , httpRequest = Stub.basicJson
+      -- , httpRequest = Stubs.Response.basicJson
       , codeGenMode = ElmPages
       , variables = Dict.empty
       }
