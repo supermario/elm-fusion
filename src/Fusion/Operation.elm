@@ -52,7 +52,7 @@ fusionAddField parents fieldName jv decoder =
         x =
             log "fusionAddField" ( parents, fieldName, jv )
     in
-    Debug.log "fusionAddFieldResult" <|
+    log "fusionAddFieldResult" <|
         FusionType <|
             case decoder of
                 EmptyDecoder ->
@@ -100,7 +100,7 @@ fusionRemove mtype decoder =
         x =
             log "fusionRemove" mtype
     in
-    Debug.log "fusionRemoveResult" <|
+    log "fusionRemoveResult" <|
         case decoder of
             EmptyDecoder ->
                 FusionType <| mtype
@@ -163,7 +163,7 @@ mTypeRemove : MType -> MType -> MType
 mTypeRemove mtype target =
     let
         _ =
-            Debug.log "mTypeRemoving" ( mtype, target )
+            log "mTypeRemoving" ( mtype, target )
     in
     case target of
         MRecord name tParams fields jsonPath ->

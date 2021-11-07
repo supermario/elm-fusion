@@ -228,15 +228,15 @@ attemptExtractValue jv mtype =
 
         MList mType_ jp ->
             -- fn mType_
-            Debug.todo "attemptExtractValue MList"
+            text <| todo "attemptExtractValue" "MList"
 
         MCustom name params variants jp ->
             -- List.map fn params ++ (List.map (\( l, v ) -> List.map fn v) variants |> List.concat) |> List.concat
-            Debug.todo "attemptExtractValue MCustom"
+            text <| todo "attemptExtractValue" "MCustom"
 
         MRecord name params fields jp ->
             -- List.map fn params ++ List.map (\( l, v ) -> fn v) fields |> List.concat
-            Debug.todo "attemptExtractValue MRecord"
+            text <| todo "attemptExtractValue" "MRecord"
 
         MParam name ->
             text ""
