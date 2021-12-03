@@ -141,10 +141,10 @@ typeRich mActions mtype_ =
             attrNone
 
         estyle =
-            [ paddingXY 5 2, debug ]
+            [ debug ]
 
         tstyle =
-            [ Font.color orange, paddingXY 5 2, debug, Border.color white ]
+            [ Font.color orange, debug, Border.color white ]
 
         recurse =
             typeRich mActions
@@ -184,7 +184,7 @@ typeRich mActions mtype_ =
                                     ([ text <| "|", el [ Font.color orange ] <| text cname ] ++ cparams_)
                             )
             in
-            column []
+            column [ spacing 5 ]
                 ([ row [ spacing 5 ]
                     [ el [ Font.color purple ] <| text "type"
                     , el [ Font.color orange ] (text <| name) --++ " custom")
@@ -215,7 +215,7 @@ typeRich mActions mtype_ =
                                 else
                                     column
                                         [ padding 5
-                                        , spacing 0
+                                        , spacing 5
                                         , padding_ 0 0 0 20
                                         , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ]))
                                         , width fill
@@ -230,18 +230,16 @@ typeRich mActions mtype_ =
             in
             case name of
                 "Unknown" ->
-                    column [ width fill ]
-                        ([ row [ spacing 5, padding 5, width fill ]
-                            [ el [ Font.color purple ] <| text "{"
-                            ]
+                    column [ width fill, spacing 5 ]
+                        ([ el [ Font.color purple ] <| text "{"
                          ]
                             ++ viewFields
-                            ++ [ row [ spacing 5, padding 5, width fill ] [ el [ Font.color purple ] <| text "}" ]
+                            ++ [ el [ Font.color purple ] <| text "}"
                                ]
                         )
 
                 _ ->
-                    column [ width fill ]
+                    column [ width fill, spacing 3 ]
                         ([ row [ spacing 5, padding 5, width fill ]
                             [ el [ Font.color purple ] <| text "type alias"
                             , el [ Font.color orange ] (text <| name) --++ " custom")

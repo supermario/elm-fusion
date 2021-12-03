@@ -63,7 +63,7 @@ init url key =
       , lastPerformed = Nothing
       , httpRequest = NotAsked
 
-      -- , httpRequest = Stubs.Response.basicJson
+      -- , httpRequest = Success Stubs.Response.basic2LevelJson
       , codeGenMode = ElmPages
       , variables = Dict.empty
       }

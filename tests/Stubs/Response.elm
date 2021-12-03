@@ -2,10 +2,24 @@ module Stubs.Response exposing (..)
 
 import Fusion.Types exposing (HttpError)
 import RemoteData exposing (RemoteData(..))
+import String.Extra as String
 
 
-basicJson : RemoteData HttpError String
-basicJson =
+basic1LevelJson : String
+basic1LevelJson =
+    """
+    {
+      "first": "Jane",
+      "last": "Doe",
+      "age": 34
+    }
+    """
+        |> String.unindent
+        |> String.trim
+
+
+basic2LevelJson : String
+basic2LevelJson =
     """
     {
       "first": "Jane",
@@ -19,5 +33,10 @@ basicJson =
       }
     }
     """
+        |> String.unindent
         |> String.trim
-        |> Success
+
+
+basic2LevelJsonResponse : RemoteData HttpError String
+basic2LevelJsonResponse =
+    Success basic2LevelJson

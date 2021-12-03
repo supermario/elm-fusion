@@ -26,6 +26,26 @@ type alias MParams =
     List MType
 
 
+{-| Mapped type resolved into values from JsonValue
+-}
+type VType
+    = VInt Int
+    | VFloat Float
+    | VString String
+    | VBool Bool
+    | VList MType (List VType)
+    | VCustom Name MParams (List ( Name, List MType, List VType ))
+    | VRecord Name MParams (List ( Name, MType, VType ))
+    | VParam Name
+      -- Non-language but core types
+    | VMaybe MType (Maybe VType)
+      -- Helpers
+    | VRecursive Name
+      --
+    | VUnimplemented
+    | VError String
+
+
 type JsonPath
     = Root
     | At (List String) String

@@ -15,10 +15,10 @@ import Types exposing (..)
 import View.Helpers exposing (..)
 
 
-view : JsonValue -> MType -> Element msg
-view jv mtype =
+view : VType -> Element msg
+view vtype =
     -- text "ok"
-    -- viewType : Maybe (Actions msg) -> MType -> Element msg
+    -- viewType : Maybe (Actions msg) -> VType -> Element msg
     -- viewType mActions t =
     let
         debug =
@@ -26,52 +26,53 @@ view jv mtype =
             [ width fill ]
     in
     row [ spacing 10, Font.family [ Font.monospace ], width fill ]
-        [ el debug <| typeRich jv mtype
+        [ el debug <| typeRich vtype
         ]
 
 
-typeRich : JsonValue -> MType -> Element msg
-typeRich jv mtype_ =
+typeRich : VType -> Element msg
+typeRich vtype_ =
     let
         debug =
             -- Border.width 1
             attrNone
 
         estyle =
-            [ paddingXY 5 2, debug ]
+            [ debug ]
 
         tstyle =
-            [ Font.color orange, paddingXY 5 2, debug, Border.color white ]
+            [ Font.color orange, debug, Border.color white ]
 
         recurse =
-            typeRich jv
+            typeRich
 
         -- withActions fn =
         --     mActions |> Maybe.map fn |> Maybe.withDefault attrNone
     in
-    case mtype_ of
-        MString jp ->
+    case vtype_ of
+        VString jp ->
             el tstyle (text <| "String")
 
-        MInt jp ->
+        VInt jp ->
             el tstyle (text <| "Int")
 
-        MFloat jp ->
+        VFloat jp ->
             el tstyle (text <| "Float")
 
-        MBool jp ->
+        VBool jp ->
             el tstyle (text <| "Bool")
 
-        MList ttype jp ->
-            row (estyle ++ [ spacing 5 ])
-                ([ el [ Font.color orange, alignTop ] (text <| "List") ] ++ [ recurse ttype ])
+        VList ttype vtype ->
+            -- row (estyle ++ [ spacing 5 ])
+            --     ([ el [ Font.color orange, alignTop ] (text <| "List") ] ++ [ recurse vtype ])
+            el tstyle (text <| "LIst")
 
-        MCustom name params constructors jp ->
+        VCustom name params constructors ->
             let
                 viewConstructors =
                     constructors
                         |> List.map
-                            (\( cname, cparams ) ->
+                            (\( cname, mparams, cparams ) ->
                                 let
                                     cparams_ =
                                         cparams
@@ -81,7 +82,7 @@ typeRich jv mtype_ =
                                     ([ text <| "|", el [ Font.color orange ] <| text cname ] ++ cparams_)
                             )
             in
-            column []
+            column [ spacing 5 ]
                 ([ row [ spacing 5 ]
                     [ el [ Font.color purple ] <| text "type"
                     , el [ Font.color orange ] (text <| name) --++ " custom")
@@ -90,68 +91,66 @@ typeRich jv mtype_ =
                     ++ viewConstructors
                 )
 
-        MRecord name params fields jp ->
+        VRecord name params fields ->
             let
                 viewFields =
                     fields
                         |> List.map
-                            (\( fname, mtype ) ->
-                                if simpleEnoughForSingleLine mtype then
+                            (\( fname, mtype, vtype ) ->
+                                if simpleEnoughForSingleLine vtype then
                                     row
                                         [ padding 5
                                         , spacing 0
                                         , padding_ 0 0 0 20
 
-                                        -- , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ]))
+                                        -- , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete vtype), pointer ]))
                                         , width fill
                                         ]
                                         [ el [ alignTop ] <| text fname
                                         , el [ alignTop, Font.color purple ] <| text " = "
                                         , let
                                             isLeaf =
-                                                isleafType mtype
+                                                isleafType vtype
 
                                             -- _ =
-                                            --     Debug.log "isLeaf" ( isLeaf, mtype )
+                                            --     Debug.log "isLeaf" ( isLeaf, vtype )
                                           in
                                           if isLeaf then
-                                            attemptExtractValue jv mtype
+                                            extractValue vtype
 
                                           else
-                                            recurse mtype
+                                            recurse vtype
                                         ]
 
                                 else
                                     column
                                         [ padding 5
-                                        , spacing 0
+                                        , spacing 5
                                         , padding_ 0 0 0 20
 
-                                        -- , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete mtype), pointer ]))
+                                        -- , withActions (\actions -> inFront (Icon.icons.delete [ Font.color grey, onClick (actions.delete vtype), pointer ]))
                                         , width fill
                                         ]
                                         [ row []
                                             [ el [ alignTop ] <| text fname
                                             , el [ alignTop, Font.color purple ] <| text " : "
                                             ]
-                                        , recurse mtype
+                                        , recurse vtype
                                         ]
                             )
             in
             case name of
                 "Unknown" ->
-                    column [ width fill ]
-                        ([ row [ spacing 5, padding 5, width fill ]
-                            [ el [ Font.color purple ] <| text "{"
-                            ]
+                    column [ width fill, spacing 5 ]
+                        ([ el [ Font.color purple ] <| text "{"
                          ]
                             ++ viewFields
-                            ++ [ row [ spacing 5, padding 5, width fill ] [ el [ Font.color purple ] <| text "}" ]
+                            ++ [ el [ Font.color purple ] <| text "}"
                                ]
                         )
 
                 _ ->
-                    column [ width fill ]
+                    column [ width fill, spacing 5 ]
                         ([ row [ spacing 5, padding 5, width fill ]
                             [ el [ Font.color purple ] <| text "type alias"
                             , el [ Font.color orange ] (text <| name) --++ " custom")
@@ -160,95 +159,91 @@ typeRich jv mtype_ =
                             ++ viewFields
                         )
 
-        MParam name ->
+        VParam name ->
             el [ Font.color red ] <| text name
 
-        MMaybe mtype jp ->
+        VMaybe mtype vtype ->
             row (estyle ++ [ spacing 5 ])
-                ([ el [ Font.color orange ] (text <| "Maybe") ] ++ [ recurse mtype ])
+                -- ([ el [ Font.color orange ] (text <| "Maybe") ] ++ [ recurse vtype ])
+                ([ el [ Font.color orange ] (text <| "Maybe") ] ++ [ text "TODO typeRich VMaybe" ])
 
-        MRecursive name ->
+        VRecursive name ->
             el [ Font.color orange ] <| text name
 
-        MUnimplemented ->
+        VUnimplemented ->
             el [ Font.color red ] <| text "TUnimplemented"
 
+        VError s ->
+            el [ Font.color red ] <| text <| "Error: " ++ s
 
-simpleEnoughForSingleLine : MType -> Bool
+
+simpleEnoughForSingleLine : VType -> Bool
 simpleEnoughForSingleLine ttype =
     case ttype of
-        MRecord name params fields jp ->
+        VRecord name params fields ->
             False
 
         _ ->
             True
 
 
-isleafType : MType -> Bool
-isleafType mtype =
+isleafType : VType -> Bool
+isleafType vtype =
     let
         -- _ =
-        --     Debug.log "isLeafType" ( mtype, Transform.children Fusion.Transform.recurseChildrenMType mtype )
+        --     Debug.log "isLeafType" ( vtype, Transform.children Fusion.Transform.recurseChildrenVType vtype )
         children =
-            Transform.children Fusion.Transform.recurseChildrenMType mtype
+            Transform.children Fusion.Transform.recurseChildrenVType vtype
     in
     List.length children <= 1
 
 
-attemptExtractValue : JsonValue -> MType -> Element msg
-attemptExtractValue jv mtype =
-    case mtype of
-        MInt jp ->
-            case Fusion.Json.getValue jp jv of
-                Just (JInt i) ->
-                    orange_ <| String.fromInt i
+extractValue : VType -> Element msg
+extractValue vtype =
+    case vtype of
+        VInt i ->
+            orange_ <| String.fromInt i
 
-                Just x ->
-                    red_ <| "Debug.crash \"Unexpected value for mapped Int: " ++ Fusion.Json.jsonValueToString x ++ "\""
-
-                Nothing ->
-                    red_ <| "Debug.crash \"Mapped value does not exist in source JSON."
-
-        MFloat jp ->
+        VFloat jp ->
             text ""
 
-        MString jp ->
-            case Fusion.Json.getValue jp jv of
-                Just (JString s) ->
-                    green_ <| "\"" ++ s ++ "\""
+        VString s ->
+            green_ <| "\"" ++ s ++ "\""
 
-                Just x ->
-                    red_ <| "Debug.crash \"Unexpected value for mapped String: " ++ Fusion.Json.jsonValueToString x ++ "\""
-
-                Nothing ->
-                    red_ <| "Debug.crash \"Mapped value does not exist in source JSON."
-
-        MBool jp ->
+        VBool jp ->
             text ""
 
-        MList mType_ jp ->
+        VList mType_ jp ->
             -- fn mType_
-            text <| todo "attemptExtractValue" "MList"
+            text <| todo "extractValue" "MList"
 
-        MCustom name params variants jp ->
+        VCustom name params variants ->
             -- List.map fn params ++ (List.map (\( l, v ) -> List.map fn v) variants |> List.concat) |> List.concat
-            text <| todo "attemptExtractValue" "MCustom"
+            text <| todo "extractValue" "MCustom"
 
-        MRecord name params fields jp ->
+        VRecord name params fields ->
             -- List.map fn params ++ List.map (\( l, v ) -> fn v) fields |> List.concat
-            text <| todo "attemptExtractValue" "MRecord"
+            text <| todo "extractValue" "MRecord"
 
-        MParam name ->
+        VParam name ->
             text ""
 
-        MMaybe mType_ jp ->
-            attemptExtractValue jv mType_
+        VMaybe mType_ vtype_ ->
+            case vtype_ of
+                Just vtype__ ->
+                    extractValue vtype__
 
-        MRecursive name ->
+                Nothing ->
+                    el [ Font.color orange ] (text "Nothing")
+
+        VRecursive name ->
             text ""
 
-        MUnimplemented ->
+        VUnimplemented ->
             text ""
+
+        VError s ->
+            text <| "Error: " ++ s
 
 
 green_ s =

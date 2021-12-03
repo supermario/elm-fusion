@@ -292,7 +292,7 @@ view model =
                     Ok ast ->
                         column [ width fill, spacing 20 ]
                             [ row [ width fill, spacing 20 ]
-                                [ column [ width fill, alignTop, spacing 20 ]
+                                [ column [ width (fillPortion 5), alignTop, spacing 20 ]
                                     [ section "Interactive JSON response"
                                         [ View.InteractiveJson.fromJsonValue [] ast
                                         ]
@@ -310,26 +310,27 @@ view model =
                                             ]
                                         ]
                                     ]
-                                , column [ width fill, spacing 20, alignTop ]
+                                , row [ width (fillPortion 6), spacing 20, alignTop ]
                                     [ section "Type builder" <|
                                         case model.fusionDecoder of
                                             EmptyDecoder ->
                                                 [ text "Click on a JSON response value label on the left to get started!" ]
 
                                             FusionType mtype ->
-                                                [ row [ width fill ]
-                                                    [ column [ width fill, alignTop ]
-                                                        [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
-                                                        , button [] ResetDecoder "Reset"
-                                                        ]
-                                                    , column [ width fill, alignTop ]
-                                                        [ View.DecodePreview.view ast mtype
-                                                        ]
+                                                [ column [ width fill, alignTop, spacing 10 ]
+                                                    [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
+                                                    , button [] ResetDecoder "Reset"
                                                     ]
+                                                ]
+                                    , section "Decode preview" <|
+                                        case model.fusionDecoder of
+                                            EmptyDecoder ->
+                                                [ text "{}" ]
 
-                                                -- , column [ width fill, Font.family [ Font.monospace ], alignTop, spacing 20 ]
-                                                --     [ text <| Fusion.Json.decoderFromMType 0 mtype
-                                                --     ]
+                                            FusionType mtype ->
+                                                [ column [ width fill, alignTop ]
+                                                    [ View.DecodePreview.view <| Fusion.Transform.extractVType mtype ast
+                                                    ]
                                                 ]
                                     ]
                                 ]

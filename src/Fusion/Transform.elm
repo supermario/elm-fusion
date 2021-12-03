@@ -1,6 +1,8 @@
 module Fusion.Transform exposing (..)
 
+import Fusion.Json
 import Fusion.Types exposing (..)
+import Helpers exposing (..)
 import Transform
 
 
@@ -78,6 +80,51 @@ recurseChildrenMType fn mtype =
             []
 
 
+recurseChildrenVType : (VType -> List VType) -> VType -> List VType
+recurseChildrenVType fn vtype =
+    case vtype of
+        VInt _ ->
+            []
+
+        VFloat _ ->
+            []
+
+        VString jp ->
+            []
+
+        VBool jp ->
+            []
+
+        VList mtype vtype_ ->
+            List.map fn vtype_ |> List.concat
+
+        VCustom name params variants ->
+            (List.map (\( l, t, v ) -> List.map fn v) variants |> List.concat) |> List.concat
+
+        VRecord name params fields ->
+            List.map (\( l, t, v ) -> fn v) fields |> List.concat
+
+        VParam name ->
+            []
+
+        VMaybe mType_ vtype_ ->
+            case vtype_ of
+                Just vtype__ ->
+                    fn vtype__
+
+                Nothing ->
+                    []
+
+        VRecursive name ->
+            []
+
+        VUnimplemented ->
+            []
+
+        VError s ->
+            []
+
+
 mapToType : MType -> TType
 mapToType mType =
     case mType of
@@ -123,3 +170,65 @@ decoderToMType decoder =
 
         FusionType mType ->
             mType
+
+
+extractVType : MType -> JsonValue -> VType
+extractVType mtype jv =
+    case mtype of
+        MInt jp ->
+            case Fusion.Json.getValue jp jv of
+                Just (JInt i) ->
+                    VInt i
+
+                Just x ->
+                    VError <| "Debug.crash \"Unexpected value for mapped Int: " ++ Fusion.Json.jsonValueToString x ++ "\""
+
+                Nothing ->
+                    VError <| "Debug.crash \"Mapped value does not exist in source JSON."
+
+        MFloat jp ->
+            VError <| "extractVType unimplemented: MFloat"
+
+        MString jp ->
+            case Fusion.Json.getValue jp jv of
+                Just (JString s) ->
+                    VString s
+
+                Just x ->
+                    VError <| "Debug.crash \"Unexpected value for mapped String: " ++ Fusion.Json.jsonValueToString x ++ "\""
+
+                Nothing ->
+                    VError <| "Debug.crash \"Mapped value does not exist in source JSON."
+
+        MBool jp ->
+            VError <| "extractVType unimplemented: MBool"
+
+        MList mType_ jp ->
+            -- fn mType_
+            VError <| "extractVType unimplemented: MList"
+
+        MCustom name params variants jp ->
+            -- List.map fn params ++ (List.map (\( l, v ) -> List.map fn v) variants |> List.concat) |> List.concat
+            VError <| "extractVType unimplemented: MCustom"
+
+        MRecord name params fields jp ->
+            VRecord name params (fields |> List.map (\( n, m ) -> ( n, m, extractVType m jv )))
+
+        -- List.map fn params ++ List.map (\( l, v ) -> fn v) fields |> List.concat
+        -- VError <| "extractVType unimplemented: MRecord"
+        MParam name ->
+            VParam name
+
+        MMaybe mtype_ jp ->
+            case Fusion.Json.getValue jp jv of
+                Just JNull ->
+                    VMaybe mtype_ Nothing
+
+                _ ->
+                    VError <| "extractVType unimplemented case in MMaybe"
+
+        MRecursive name ->
+            VError <| "extractVType unimplemented: MRecursive"
+
+        MUnimplemented ->
+            VError <| "extractVType unimplemented: MUnimplemented"
