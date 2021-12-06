@@ -6,6 +6,7 @@ import DataSourceGenerator
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
@@ -46,7 +47,7 @@ emptyRequest =
     { method = Request.GET
     , headers = []
     , url = "https://jsonplaceholder.typicode.com/posts/1" |> InterpolatedField.fromString
-    , body = Request.StringBody "application/x-www-form-urlencoded" ""
+    , body = Fusion.Types.Empty
     , timeout = Nothing
     , auth = Nothing
     }
@@ -90,19 +91,13 @@ toHttpBody body =
             Http.emptyBody
 
         Fusion.Types.StringBody mime string ->
-            Http.stringBody mime string
+            Http.stringBody "application/json" string
 
-        Fusion.Types.Json ->
-            todo "Json toHttpBody" Http.emptyBody
-
-        Fusion.Types.File ->
-            todo "File toHttpBody" Http.emptyBody
-
-        Fusion.Types.Bytes ->
-            todo "Bytes toHttpBody" Http.emptyBody
-
-        Fusion.Types.MultiPart parts ->
-            todo "MultiPart toHttpBody" Http.emptyBody
+        Fusion.Types.JsonBody json ->
+            json
+                |> D.decodeString D.value
+                |> Result.map Http.jsonBody
+                |> Result.withDefault Http.emptyBody
 
 
 variablesView : Dict String VariableDefinition -> Request -> Element Msg
@@ -169,6 +164,93 @@ variableView variables unreferencedVariables variableName =
                         "Parameter"
                     ]
                 ]
+
+
+bodyView : { a | body : RequestBody } -> Element FrontendMsg
+bodyView currentRequest =
+    let
+        currentBodyString : String
+        currentBodyString =
+            case currentRequest.body of
+                Empty ->
+                    ""
+
+                JsonBody body ->
+                    body
+
+                StringBody mimeType body ->
+                    body
+
+        validationErrors : List String
+        validationErrors =
+            case currentRequest.body of
+                Empty ->
+                    []
+
+                JsonBody body ->
+                    case body |> D.decodeString D.value of
+                        Ok _ ->
+                            []
+
+                        Err jsonError ->
+                            [ D.errorToString jsonError ]
+
+                StringBody _ _ ->
+                    []
+    in
+    column [ width fill ]
+        [ row []
+            [ buttonHilightOn (currentRequest.body == Empty) [] (RequestBodyChanged Empty) "Empty"
+            , buttonHilightOn
+                (case currentRequest.body of
+                    JsonBody _ ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (RequestBodyChanged (JsonBody currentBodyString))
+                "JSON"
+            ]
+        , if currentRequest.body == Empty then
+            Element.none
+
+          else
+            Input.multiline
+                ((if List.isEmpty validationErrors then
+                    []
+
+                  else
+                    [ Element.Border.color (Element.rgb255 255 0 0) ]
+                 )
+                    ++ [ padding 5
+                       ]
+                )
+                { onChange =
+                    \newBody ->
+                        RequestBodyChanged
+                            (case currentRequest.body of
+                                Empty ->
+                                    StringBody "" newBody
+
+                                JsonBody _ ->
+                                    JsonBody newBody
+
+                                StringBody mimeType _ ->
+                                    StringBody mimeType newBody
+                            )
+                , text = requestBodyString currentRequest
+                , placeholder = Just (Input.placeholder [] <| text "request body")
+                , label = Input.labelHidden "request body input"
+                , spellcheck = False
+                }
+        , if List.isEmpty validationErrors then
+            Element.none
+
+          else
+            Element.column [] (validationErrors |> List.map Element.text)
+        ]
 
 
 authView : Maybe Request.Auth -> Element Msg
@@ -258,13 +340,7 @@ view model =
                 , label = Input.labelHidden "request headers input"
                 , spellcheck = False
                 }
-            , Input.multiline [ padding 5 ]
-                { onChange = RequestBodyChanged
-                , text = requestBodyString model.currentRequest
-                , placeholder = Just (Input.placeholder [] <| text "request body")
-                , label = Input.labelHidden "request body input"
-                , spellcheck = False
-                }
+            , bodyView model.currentRequest
             , authView model.currentRequest.auth
             ]
         , section "HTTP Request Status"
@@ -453,26 +529,21 @@ updateCurrentRequest fn model =
     }
 
 
-updateRequestBodyString : String -> Request -> Request
+updateRequestBodyString : RequestBody -> Request -> Request
 updateRequestBodyString s req =
-    { req
-        | body =
-            case req.body of
-                Request.Empty ->
-                    req.body
-
-                Request.StringBody mime string ->
-                    Request.StringBody mime string
-    }
+    { req | body = s }
 
 
-requestBodyString : { a | body : Request.Body } -> String
+requestBodyString : { a | body : RequestBody } -> String
 requestBodyString req =
     case req.body of
-        Request.Empty ->
+        Empty ->
             ""
 
-        Request.StringBody contentType body ->
+        StringBody contentType body ->
+            body
+
+        JsonBody body ->
             body
 
 

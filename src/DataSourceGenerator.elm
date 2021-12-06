@@ -6,6 +6,7 @@ import Elm.Annotation
 import Elm.Gen.DataSource.Http
 import Elm.Gen.Pages.Secrets
 import Elm.Pattern
+import Fusion.Types
 import InterpolatedField
 import List.NonEmpty
 import Request exposing (Request)
@@ -137,11 +138,14 @@ generate variableDefinitions request =
 bodyGenerator : Request -> Elm.Expression
 bodyGenerator request =
     case request.body of
-        Request.Empty ->
+        Fusion.Types.Empty ->
             Elm.Gen.DataSource.Http.emptyBody
 
-        Request.StringBody contentType body ->
+        Fusion.Types.StringBody contentType body ->
             Elm.Gen.DataSource.Http.stringBody (Elm.string contentType) (Elm.string body)
+
+        Fusion.Types.JsonBody body ->
+            Elm.Gen.DataSource.Http.jsonBody (Elm.string body)
 
 
 indent : String -> String

@@ -95,10 +95,13 @@ type RequestMethod
 type RequestBody
     = Empty
     | StringBody String String
-    | Json
-    | File
-    | Bytes
-    | MultiPart (List RequestBodyPart)
+    | JsonBody String
+
+
+
+--| File
+--| Bytes
+--| MultiPart (List RequestBodyPart)
 
 
 type RequestBodyPart
