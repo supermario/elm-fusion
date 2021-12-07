@@ -100,6 +100,145 @@ toHttpBody body =
                 |> Result.withDefault Http.emptyBody
 
 
+toHttpMethod : Fusion.Types.RequestMethod -> String
+toHttpMethod method =
+    case method of
+        Fusion.Types.GET ->
+            "GET"
+
+        Fusion.Types.POST ->
+            "POST"
+
+
+view : Model -> Element Msg
+view model =
+    column [ width fill, spacing 20 ]
+        [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
+        , section "Request builder"
+            [ row [ spacing 5 ]
+                [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
+                , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
+                , el
+                    [ onClick MakeRequestClicked
+                    , if model.lastPerformed == Just { request = model.currentRequest, variables = model.variables } then
+                        Background.color grey
+
+                      else
+                        Background.color green
+                    , padding 10
+                    , pointer
+                    ]
+                  <|
+                    text "Make Request"
+                ]
+            , Input.multiline [ padding 5 ]
+                { onChange = RequestUrlChanged
+                , text = model.currentRequest.url |> InterpolatedField.toString
+                , placeholder =
+                    Just (Input.placeholder [] <| text "the HTTP URL")
+                , label = Input.labelHidden "request url input"
+                , spellcheck = False
+                }
+            , Input.multiline [ padding 5 ]
+                { onChange = RequestHeadersChanged
+                , text = model.rawHeaders
+                , placeholder = Just (Input.placeholder [] <| text "request headers, one per line")
+                , label = Input.labelHidden "request headers input"
+                , spellcheck = False
+                }
+            , bodyView model.currentRequest
+            , authView model.currentRequest.auth
+            ]
+        , section "HTTP Request Status"
+            [ paragraph []
+                [ case model.httpRequest of
+                    NotAsked ->
+                        text "No HTTP requests yet."
+
+                    Loading ->
+                        text "Loading..."
+
+                    Failure err ->
+                        text <| "Error: " ++ httpErrorToString err
+
+                    Success v ->
+                        text "HTTP succeeded."
+                ]
+            ]
+
+        -- , paragraph [] [ text <| toString model.currentRequest ]
+        -- , paragraph [] [ text <| toString model.fusionDecoder ]
+        , case model.httpRequest of
+            Success string ->
+                case D.decodeString decodeJsonAst string of
+                    Ok ast ->
+                        column [ width fill, spacing 20 ]
+                            [ row [ width fill, spacing 20 ]
+                                [ column [ width (fillPortion 5), alignTop, spacing 20 ]
+                                    [ section "Interactive JSON response"
+                                        [ View.InteractiveJson.fromJsonValue [] ast
+                                        ]
+                                    , section "Response JSON inferred type"
+                                        [ row [ width fill, alignTop, spacing 20 ]
+                                            [ el [ width fill, alignTop ] <|
+                                                el [ alignTop, Font.family [ Font.monospace ], width fill ] <|
+                                                    text <|
+                                                        Fusion.View.typeString 0 <|
+                                                            Fusion.Transform.mapToType <|
+                                                                Op.guessElmTypeForJsonValue ast Root
+                                            , el [ width fill, alignTop ] <|
+                                                Fusion.View.viewType Nothing <|
+                                                    Op.guessElmTypeForJsonValue ast Root
+                                            ]
+                                        ]
+                                    ]
+                                , row [ width (fillPortion 6), spacing 20, alignTop ]
+                                    [ section "Type builder" <|
+                                        case model.fusionDecoder of
+                                            EmptyDecoder ->
+                                                [ text "Click on a JSON response value label on the left to get started!" ]
+
+                                            FusionType mtype ->
+                                                [ column [ width fill, alignTop, spacing 10 ]
+                                                    [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
+                                                    , button [] ResetDecoder "Reset"
+                                                    ]
+                                                ]
+                                    , section "Decode preview" <|
+                                        case model.fusionDecoder of
+                                            EmptyDecoder ->
+                                                [ text "{}" ]
+
+                                            FusionType mtype ->
+                                                [ column [ width fill, alignTop ]
+                                                    [ View.DecodePreview.view <| Fusion.Transform.extractVType mtype ast
+                                                    ]
+                                                ]
+                                    ]
+                                ]
+                            , section "Code generators"
+                                [ row [ spacing 5 ]
+                                    [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
+                                    , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
+                                    , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
+                                    ]
+                                , generatedRequestView model
+                                ]
+                            ]
+
+                    Err err ->
+                        column [ spacing 10 ]
+                            [ paragraph [] [ text <| "I got a valid response: " ]
+                            , el [ Font.family [ Font.monospace ] ] <| text string
+                            , paragraph [] [ text "But failed to decode it into JSON:" ]
+                            , text <| D.errorToString err
+                            ]
+
+            _ ->
+                none
+        ]
+
+
 variablesView : Dict String VariableDefinition -> Request -> Element Msg
 variablesView variables request =
     let
@@ -315,145 +454,6 @@ authView maybeAuth =
 
             Nothing ->
                 column [] []
-        ]
-
-
-toHttpMethod : Fusion.Types.RequestMethod -> String
-toHttpMethod method =
-    case method of
-        Fusion.Types.GET ->
-            "GET"
-
-        Fusion.Types.POST ->
-            "POST"
-
-
-view : Model -> Element Msg
-view model =
-    column [ width fill, spacing 20 ]
-        [ Element.Lazy.lazy2 variablesView model.variables model.currentRequest
-        , section "Request builder"
-            [ row [ spacing 5 ]
-                [ buttonHilightOn (model.currentRequest.method == Request.GET) [] (RequestHttpMethodChanged Request.GET) "GET"
-                , buttonHilightOn (model.currentRequest.method == Request.POST) [] (RequestHttpMethodChanged Request.POST) "POST"
-                , el
-                    [ onClick MakeRequestClicked
-                    , if model.lastPerformed == Just { request = model.currentRequest, variables = model.variables } then
-                        Background.color grey
-
-                      else
-                        Background.color green
-                    , padding 10
-                    , pointer
-                    ]
-                  <|
-                    text "Make Request"
-                ]
-            , Input.multiline [ padding 5 ]
-                { onChange = RequestUrlChanged
-                , text = model.currentRequest.url |> InterpolatedField.toString
-                , placeholder =
-                    Just (Input.placeholder [] <| text "the HTTP URL")
-                , label = Input.labelHidden "request url input"
-                , spellcheck = False
-                }
-            , Input.multiline [ padding 5 ]
-                { onChange = RequestHeadersChanged
-                , text = model.rawHeaders
-                , placeholder = Just (Input.placeholder [] <| text "request headers, one per line")
-                , label = Input.labelHidden "request headers input"
-                , spellcheck = False
-                }
-            , bodyView model.currentRequest
-            , authView model.currentRequest.auth
-            ]
-        , section "HTTP Request Status"
-            [ paragraph []
-                [ case model.httpRequest of
-                    NotAsked ->
-                        text "No HTTP requests yet."
-
-                    Loading ->
-                        text "Loading..."
-
-                    Failure err ->
-                        text <| "Error: " ++ httpErrorToString err
-
-                    Success v ->
-                        text "HTTP succeeded."
-                ]
-            ]
-
-        -- , paragraph [] [ text <| toString model.currentRequest ]
-        -- , paragraph [] [ text <| toString model.fusionDecoder ]
-        , case model.httpRequest of
-            Success string ->
-                case D.decodeString decodeJsonAst string of
-                    Ok ast ->
-                        column [ width fill, spacing 20 ]
-                            [ row [ width fill, spacing 20 ]
-                                [ column [ width (fillPortion 5), alignTop, spacing 20 ]
-                                    [ section "Interactive JSON response"
-                                        [ View.InteractiveJson.fromJsonValue [] ast
-                                        ]
-                                    , section "Response JSON inferred type"
-                                        [ row [ width fill, alignTop, spacing 20 ]
-                                            [ el [ width fill, alignTop ] <|
-                                                el [ alignTop, Font.family [ Font.monospace ], width fill ] <|
-                                                    text <|
-                                                        Fusion.View.typeString 0 <|
-                                                            Fusion.Transform.mapToType <|
-                                                                Op.guessElmTypeForJsonValue ast Root
-                                            , el [ width fill, alignTop ] <|
-                                                Fusion.View.viewType Nothing <|
-                                                    Op.guessElmTypeForJsonValue ast Root
-                                            ]
-                                        ]
-                                    ]
-                                , row [ width (fillPortion 6), spacing 20, alignTop ]
-                                    [ section "Type builder" <|
-                                        case model.fusionDecoder of
-                                            EmptyDecoder ->
-                                                [ text "Click on a JSON response value label on the left to get started!" ]
-
-                                            FusionType mtype ->
-                                                [ column [ width fill, alignTop, spacing 10 ]
-                                                    [ Fusion.View.viewType (Just { delete = FusionRemoveField }) <| Fusion.Transform.decoderToMType model.fusionDecoder
-                                                    , button [] ResetDecoder "Reset"
-                                                    ]
-                                                ]
-                                    , section "Decode preview" <|
-                                        case model.fusionDecoder of
-                                            EmptyDecoder ->
-                                                [ text "{}" ]
-
-                                            FusionType mtype ->
-                                                [ column [ width fill, alignTop ]
-                                                    [ View.DecodePreview.view <| Fusion.Transform.extractVType mtype ast
-                                                    ]
-                                                ]
-                                    ]
-                                ]
-                            , section "Code generators"
-                                [ row [ spacing 5 ]
-                                    [ buttonHilightOn (model.codeGenMode == ElmPages) [] (CodeGenModeChanged ElmPages) "elm-pages DataSource"
-                                    , buttonHilightOn (model.codeGenMode == ElmHttp) [] (CodeGenModeChanged ElmHttp) "elm/http Request"
-                                    , buttonHilightOn (model.codeGenMode == Curl) [] (CodeGenModeChanged Curl) "cURL"
-                                    ]
-                                , generatedRequestView model
-                                ]
-                            ]
-
-                    Err err ->
-                        column [ spacing 10 ]
-                            [ paragraph [] [ text <| "I got a valid response: " ]
-                            , el [ Font.family [ Font.monospace ] ] <| text string
-                            , paragraph [] [ text "But failed to decode it into JSON:" ]
-                            , text <| D.errorToString err
-                            ]
-
-            _ ->
-                none
         ]
 
 
