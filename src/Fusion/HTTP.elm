@@ -90,8 +90,8 @@ toHttpBody body =
         Fusion.Types.Empty ->
             Http.emptyBody
 
-        Fusion.Types.StringBody mime string ->
-            Http.stringBody "application/json" string
+        Fusion.Types.StringBody contentType string ->
+            Http.stringBody contentType string
 
         Fusion.Types.JsonBody json ->
             json
