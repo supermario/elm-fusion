@@ -2,6 +2,7 @@ module CurlGeneratorTest exposing (..)
 
 import CurlGenerator
 import Expect
+import Fusion.Types
 import InterpolatedField
 import Request exposing (Request)
 import Test exposing (Test, describe, test)
@@ -14,7 +15,7 @@ suite =
             \() ->
                 { url = "http://en.wikipedia.org/"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "Accept-Language", "en-US,en;q=0.8" )
                     , ( "Referer", "http://www.wikipedia.org/" )
@@ -29,7 +30,7 @@ suite =
             \() ->
                 { url = "http://en.wikipedia.org/"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "Accept-Language", "en-US,en;q=0.8" )
                     , ( "Referer", "http://www.wikipedia.org/" )
@@ -50,7 +51,7 @@ suite =
             \() ->
                 { url = "https://reqbin.com/echo/post/json"
                 , method = Request.POST
-                , body = Request.StringBody "application/json" """{"login":"my_login","password":"my_password"}"""
+                , body = Fusion.Types.StringBody "application/json" """{"login":"my_login","password":"my_password"}"""
                 , headers = []
                 , auth = Nothing
                 }
@@ -64,7 +65,7 @@ suite =
 toRequest :
     { url : String
     , method : Request.Method
-    , body : Request.Body
+    , body : Fusion.Types.RequestBody
     , headers : List ( String, String )
     , auth : Maybe Request.Auth
     }

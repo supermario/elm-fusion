@@ -1,5 +1,6 @@
 module CurlGenerator exposing (generate)
 
+import Fusion.Types
 import InterpolatedField
 import List.NonEmpty
 import Request exposing (Request)
@@ -33,15 +34,22 @@ generate request =
         Nothing ->
             []
     , case request.body of
-        Request.StringBody contentType body ->
+        Fusion.Types.StringBody contentType body ->
             [ "-H"
             , quoted ("Content-Type: " ++ contentType)
             , "-d"
             , quoted body
             ]
 
-        Request.Empty ->
+        Fusion.Types.Empty ->
             []
+
+        Fusion.Types.JsonBody jsonBody ->
+            [ "-H"
+            , quoted ("Content-Type: " ++ "application/json")
+            , "-d"
+            , quoted jsonBody
+            ]
     ]
         |> List.filterMap List.NonEmpty.fromList
         |> List.map List.NonEmpty.toList

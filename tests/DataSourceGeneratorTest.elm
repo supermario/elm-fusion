@@ -4,6 +4,7 @@ import DataSourceGenerator
 import Dict
 import Elm
 import Expect
+import Fusion.Types
 import InterpolatedField
 import Request exposing (Request)
 import Test exposing (Test, describe, test)
@@ -17,7 +18,7 @@ suite =
             \() ->
                 { url = "https://example.com"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
@@ -45,7 +46,7 @@ suite =
             \() ->
                 { url = "https://example.com"
                 , method = Request.GET
-                , body = Request.StringBody "application/json" """{"key":"value"}"""
+                , body = Fusion.Types.StringBody "application/json" """{"key":"value"}"""
                 , headers =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Referer", "http://www.wikipedia.org/" )
@@ -76,7 +77,7 @@ suite =
             \() ->
                 { url = "https://example.com"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "accept-language", "en-US,en;q=0.9" )
                     , ( "Authorization", "Basic ${AUTH_TOKEN}" )
@@ -107,7 +108,7 @@ suite =
             \() ->
                 { url = "https://example.com"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "accept-language", "${PREFERRED_LANGUAGE};q=0.9" )
                     , ( "Authorization", "Basic ${AUTH_TOKEN}" )
@@ -139,7 +140,7 @@ suite =
             \() ->
                 { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "Content-Type", "application/json" )
                     ]
@@ -178,7 +179,7 @@ suite =
             \() ->
                 { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
                 , method = Request.GET
-                , body = Request.Empty
+                , body = Fusion.Types.Empty
                 , headers =
                     [ ( "Content-Type", "application/json" )
                     ]
@@ -222,7 +223,7 @@ suite =
 toRequest :
     { url : String
     , method : Request.Method
-    , body : Request.Body
+    , body : Fusion.Types.RequestBody
     , headers : List ( String, String )
     , auth : Maybe Request.Auth
     }

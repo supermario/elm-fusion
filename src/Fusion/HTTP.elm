@@ -6,6 +6,7 @@ import DataSourceGenerator
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
@@ -46,7 +47,7 @@ emptyRequest =
     { method = Request.GET
     , headers = []
     , url = "https://jsonplaceholder.typicode.com/posts/1" |> InterpolatedField.fromString
-    , body = Request.StringBody "application/x-www-form-urlencoded" ""
+    , body = Fusion.Types.Empty
     , timeout = Nothing
     , auth = Nothing
     }
@@ -89,127 +90,14 @@ toHttpBody body =
         Fusion.Types.Empty ->
             Http.emptyBody
 
-        Fusion.Types.StringBody mime string ->
-            Http.stringBody mime string
+        Fusion.Types.StringBody contentType string ->
+            Http.stringBody contentType string
 
-        Fusion.Types.Json ->
-            todo "Json toHttpBody" Http.emptyBody
-
-        Fusion.Types.File ->
-            todo "File toHttpBody" Http.emptyBody
-
-        Fusion.Types.Bytes ->
-            todo "Bytes toHttpBody" Http.emptyBody
-
-        Fusion.Types.MultiPart parts ->
-            todo "MultiPart toHttpBody" Http.emptyBody
-
-
-variablesView : Dict String VariableDefinition -> Request -> Element Msg
-variablesView variables request =
-    let
-        referencedVariables : List String
-        referencedVariables =
-            Request.referencedVariables request
-                |> List.map InterpolatedField.rawVariableName
-
-        definedVariables : List String
-        definedVariables =
-            variables
-                |> Dict.keys
-
-        allVariables : List String
-        allVariables =
-            (referencedVariables ++ definedVariables)
-                |> List.unique
-
-        unreferencedVariables : Set String
-        unreferencedVariables =
-            Set.diff
-                (Set.fromList definedVariables)
-                (Set.fromList referencedVariables)
-    in
-    if allVariables |> List.isEmpty then
-        text ""
-
-    else
-        section "Variables"
-            (allVariables
-                |> List.map (variableView variables unreferencedVariables)
-            )
-
-
-variableView : Dict String VariableDefinition -> Set String -> String -> Element Msg
-variableView variables unreferencedVariables variableName =
-    case variables |> Dict.get variableName |> Maybe.withDefault VariableDefinition.default of
-        VariableDefinition variableValue variableVisibility ->
-            row [ width fill ]
-                [ Input.newPassword [ padding 5 ]
-                    { onChange = \newValue -> VariableUpdated { name = variableName, value = VariableDefinition newValue variableVisibility }
-                    , text = variableValue
-                    , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
-                    , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
-                    , show = variableVisibility /= VariableDefinition.Secret
-                    }
-                , if unreferencedVariables |> Set.member variableName then
-                    button [] (DeleteVariable variableName) "DELETE"
-
-                  else
-                    text ""
-                , row []
-                    [ buttonHilightOnSvg .notVisible
-                        (variableVisibility == VariableDefinition.Secret)
-                        []
-                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Secret })
-                        "Secret"
-                    , buttonHilightOnSvg .visible
-                        (variableVisibility == VariableDefinition.Parameter)
-                        []
-                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Parameter })
-                        "Parameter"
-                    ]
-                ]
-
-
-authView : Maybe Request.Auth -> Element Msg
-authView maybeAuth =
-    -- TODO button to toggle between different auth types (for now just Basic or None)
-    column []
-        [ row []
-            [ buttonHilightOn (maybeAuth == Nothing) [] (AuthChanged Nothing) "None"
-            , buttonHilightOn
-                (case maybeAuth of
-                    Just (Request.BasicAuth _) ->
-                        True
-
-                    _ ->
-                        False
-                )
-                []
-                (AuthChanged (Just (Request.BasicAuth { username = "" |> InterpolatedField.fromString, password = "" |> InterpolatedField.fromString })))
-                "Basic"
-            ]
-        , case maybeAuth of
-            Just (Request.BasicAuth basicAuth) ->
-                column [ width fill ]
-                    [ Input.text [ padding 5 ]
-                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | username = value |> InterpolatedField.fromString }))
-                        , text = basicAuth.username |> InterpolatedField.toString
-                        , placeholder = Just (Input.placeholder [] <| text "")
-                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Username")
-                        }
-                    , Input.currentPassword [ padding 5 ]
-                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | password = value |> InterpolatedField.fromString }))
-                        , text = basicAuth.password |> InterpolatedField.toString
-                        , placeholder = Just (Input.placeholder [] <| text "")
-                        , show = True
-                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Password")
-                        }
-                    ]
-
-            Nothing ->
-                column [] []
-        ]
+        Fusion.Types.JsonBody json ->
+            json
+                |> D.decodeString D.value
+                |> Result.map Http.jsonBody
+                |> Result.withDefault Http.emptyBody
 
 
 toHttpMethod : Fusion.Types.RequestMethod -> String
@@ -258,13 +146,7 @@ view model =
                 , label = Input.labelHidden "request headers input"
                 , spellcheck = False
                 }
-            , Input.multiline [ padding 5 ]
-                { onChange = RequestBodyChanged
-                , text = requestBodyString model.currentRequest
-                , placeholder = Just (Input.placeholder [] <| text "request body")
-                , label = Input.labelHidden "request body input"
-                , spellcheck = False
-                }
+            , bodyView model.currentRequest
             , authView model.currentRequest.auth
             ]
         , section "HTTP Request Status"
@@ -354,6 +236,224 @@ view model =
 
             _ ->
                 none
+        ]
+
+
+variablesView : Dict String VariableDefinition -> Request -> Element Msg
+variablesView variables request =
+    let
+        referencedVariables : List String
+        referencedVariables =
+            Request.referencedVariables request
+                |> List.map InterpolatedField.rawVariableName
+
+        definedVariables : List String
+        definedVariables =
+            variables
+                |> Dict.keys
+
+        allVariables : List String
+        allVariables =
+            (referencedVariables ++ definedVariables)
+                |> List.unique
+
+        unreferencedVariables : Set String
+        unreferencedVariables =
+            Set.diff
+                (Set.fromList definedVariables)
+                (Set.fromList referencedVariables)
+    in
+    if allVariables |> List.isEmpty then
+        text ""
+
+    else
+        section "Variables"
+            (allVariables
+                |> List.map (variableView variables unreferencedVariables)
+            )
+
+
+variableView : Dict String VariableDefinition -> Set String -> String -> Element Msg
+variableView variables unreferencedVariables variableName =
+    case variables |> Dict.get variableName |> Maybe.withDefault VariableDefinition.default of
+        VariableDefinition variableValue variableVisibility ->
+            row [ width fill ]
+                [ Input.newPassword [ padding 5 ]
+                    { onChange = \newValue -> VariableUpdated { name = variableName, value = VariableDefinition newValue variableVisibility }
+                    , text = variableValue
+                    , placeholder = Just (Input.placeholder [] <| text "the value for the variable")
+                    , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text variableName)
+                    , show = variableVisibility /= VariableDefinition.Secret
+                    }
+                , if unreferencedVariables |> Set.member variableName then
+                    button [] (DeleteVariable variableName) "DELETE"
+
+                  else
+                    text ""
+                , row []
+                    [ buttonHilightOnSvg .notVisible
+                        (variableVisibility == VariableDefinition.Secret)
+                        []
+                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Secret })
+                        "Secret"
+                    , buttonHilightOnSvg .visible
+                        (variableVisibility == VariableDefinition.Parameter)
+                        []
+                        (VariableUpdated { name = variableName, value = VariableDefinition variableValue VariableDefinition.Parameter })
+                        "Parameter"
+                    ]
+                ]
+
+
+bodyView : { a | body : RequestBody } -> Element FrontendMsg
+bodyView currentRequest =
+    let
+        currentBodyString : String
+        currentBodyString =
+            case currentRequest.body of
+                Empty ->
+                    ""
+
+                JsonBody body ->
+                    body
+
+                StringBody mimeType body ->
+                    body
+
+        validationErrors : List String
+        validationErrors =
+            case currentRequest.body of
+                Empty ->
+                    []
+
+                JsonBody body ->
+                    case body |> D.decodeString D.value of
+                        Ok _ ->
+                            []
+
+                        Err jsonError ->
+                            [ D.errorToString jsonError ]
+
+                StringBody _ _ ->
+                    []
+    in
+    column [ width fill, spacing 10 ]
+        [ row []
+            [ buttonHilightOn (currentRequest.body == Empty) [] (RequestBodyChanged Empty) "Empty"
+            , buttonHilightOn
+                (case currentRequest.body of
+                    JsonBody _ ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (RequestBodyChanged (JsonBody currentBodyString))
+                "JSON"
+            , buttonHilightOn
+                (case currentRequest.body of
+                    StringBody _ _ ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (RequestBodyChanged (StringBody "application/plain" currentBodyString))
+                "Other"
+            ]
+        , if currentRequest.body == Empty then
+            Element.none
+
+          else
+            Element.column [ width fill, spacing 10 ]
+                [ case currentRequest.body of
+                    StringBody contentType body ->
+                        Input.text [ padding 5 ]
+                            { onChange = \newContentType -> RequestBodyChanged (StringBody newContentType body)
+                            , text = contentType
+                            , placeholder = Just (Input.placeholder [] <| text "")
+                            , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Content-Type")
+                            }
+
+                    _ ->
+                        Element.none
+                , Input.multiline
+                    ((if List.isEmpty validationErrors then
+                        []
+
+                      else
+                        [ Element.Border.color (Element.rgb255 255 0 0) ]
+                     )
+                        ++ [ padding 5
+                           ]
+                    )
+                    { onChange =
+                        \newBody ->
+                            RequestBodyChanged
+                                (case currentRequest.body of
+                                    Empty ->
+                                        StringBody "" newBody
+
+                                    JsonBody _ ->
+                                        JsonBody newBody
+
+                                    StringBody mimeType _ ->
+                                        StringBody mimeType newBody
+                                )
+                    , text = requestBodyString currentRequest
+                    , placeholder = Just (Input.placeholder [] <| text "request body")
+                    , label = Input.labelHidden "request body input"
+                    , spellcheck = False
+                    }
+                ]
+        , if List.isEmpty validationErrors then
+            Element.none
+
+          else
+            Element.column [] (validationErrors |> List.map Element.text)
+        ]
+
+
+authView : Maybe Request.Auth -> Element Msg
+authView maybeAuth =
+    -- TODO button to toggle between different auth types (for now just Basic or None)
+    column []
+        [ row []
+            [ buttonHilightOn (maybeAuth == Nothing) [] (AuthChanged Nothing) "None"
+            , buttonHilightOn
+                (case maybeAuth of
+                    Just (Request.BasicAuth _) ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (AuthChanged (Just (Request.BasicAuth { username = "" |> InterpolatedField.fromString, password = "" |> InterpolatedField.fromString })))
+                "Basic"
+            ]
+        , case maybeAuth of
+            Just (Request.BasicAuth basicAuth) ->
+                column [ width fill ]
+                    [ Input.text [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | username = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.username |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Username")
+                        }
+                    , Input.currentPassword [ padding 5 ]
+                        { onChange = \value -> AuthChanged (Just (Request.BasicAuth { basicAuth | password = value |> InterpolatedField.fromString }))
+                        , text = basicAuth.password |> InterpolatedField.toString
+                        , placeholder = Just (Input.placeholder [] <| text "")
+                        , show = True
+                        , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Password")
+                        }
+                    ]
+
+            Nothing ->
+                column [] []
         ]
 
 
@@ -453,26 +553,21 @@ updateCurrentRequest fn model =
     }
 
 
-updateRequestBodyString : String -> Request -> Request
+updateRequestBodyString : RequestBody -> Request -> Request
 updateRequestBodyString s req =
-    { req
-        | body =
-            case req.body of
-                Request.Empty ->
-                    req.body
-
-                Request.StringBody mime string ->
-                    Request.StringBody mime string
-    }
+    { req | body = s }
 
 
-requestBodyString : { a | body : Request.Body } -> String
+requestBodyString : { a | body : RequestBody } -> String
 requestBodyString req =
     case req.body of
-        Request.Empty ->
+        Empty ->
             ""
 
-        Request.StringBody contentType body ->
+        StringBody contentType body ->
+            body
+
+        JsonBody body ->
             body
 
 

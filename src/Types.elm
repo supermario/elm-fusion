@@ -42,7 +42,7 @@ type FrontendMsg
     | VariableUpdated { name : String, value : VariableDefinition }
     | DeleteVariable String
     | RequestHeadersChanged String
-    | RequestBodyChanged String
+    | RequestBodyChanged RequestBody
     | AuthChanged (Maybe Request.Auth)
     | MakeRequestClicked
     | ResetDecoder

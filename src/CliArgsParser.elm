@@ -49,9 +49,9 @@ stringHelp revChunks =
         [ succeed (\chunk -> Loop (chunk :: revChunks))
             |. token "\\"
             |= oneOf
-                [ map (\_ -> "\n") (token "n")
-                , map (\_ -> "\t") (token "t")
-                , map (\_ -> "\u{000D}") (token "r")
+                [ map (\_ -> "\\n") (token "n")
+                , map (\_ -> "\\t") (token "t")
+                , map (\_ -> "\\r") (token "r")
                 ]
         , token "\""
             |> map (\_ -> Done (String.join "" (List.reverse revChunks)))
@@ -76,9 +76,9 @@ singleQuoteStringHelp revChunks =
         [ succeed (\chunk -> Loop (chunk :: revChunks))
             |. token "\\"
             |= oneOf
-                [ map (\_ -> "\n") (token "n")
-                , map (\_ -> "\t") (token "t")
-                , map (\_ -> "\u{000D}") (token "r")
+                [ map (\_ -> "\\n") (token "n")
+                , map (\_ -> "\\t") (token "t")
+                , map (\_ -> "\\r") (token "r")
                 ]
         , token "'"
             |> map (\_ -> Done (String.join "" (List.reverse revChunks)))

@@ -1,10 +1,11 @@
-module Request exposing (Auth(..), Body(..), Method(..), Request, convert, methodToString, referencedVariables)
+module Request exposing (Auth(..), Method(..), Request, convert, methodToString, referencedVariables)
 
 import Base64
 import Dict exposing (Dict)
-import Fusion.Types
+import Fusion.Types exposing (RequestBody)
 import Http
 import InterpolatedField exposing (InterpolatedField)
+import List.Extra
 import VariableDefinition exposing (VariableDefinition)
 
 
@@ -12,7 +13,7 @@ type alias Request =
     { method : Method
     , headers : List ( InterpolatedField, InterpolatedField )
     , url : InterpolatedField
-    , body : Body
+    , body : RequestBody
     , timeout : Maybe Float
     , auth : Maybe Auth
     }
@@ -30,11 +31,6 @@ type Method
     | POST
 
 
-type Body
-    = Empty
-    | StringBody String String
-
-
 convert : Dict String VariableDefinition -> Request -> Fusion.Types.Request
 convert variables request =
     let
@@ -42,30 +38,38 @@ convert variables request =
             "Basic "
                 ++ Base64.encode (InterpolatedField.interpolate variables basicAuth.username ++ ":" ++ InterpolatedField.interpolate variables basicAuth.password)
 
-        authHeaders : List Http.Header
+        authHeaders : List ( InterpolatedField, InterpolatedField )
         authHeaders =
             case request.auth of
                 Just (BasicAuth basicAuth) ->
-                    [ Http.header
-                        "Authorization"
-                        (basicAuthEncoded basicAuth
-                         -- |> Debug.log "Authorization header"
-                        )
+                    [ ( InterpolatedField.fromString "Authorization"
+                      , InterpolatedField.fromString <| basicAuthEncoded basicAuth
+                      )
                     ]
 
                 _ ->
                     []
     in
     { headers =
-        request.headers
+        (request.headers ++ authHeaders)
+            |> List.Extra.uniqueBy (\( key, value ) -> InterpolatedField.interpolate variables key |> String.toLower)
+            |> List.filter (\( key, value ) -> (key |> InterpolatedField.interpolate variables |> String.toLower) /= "content-type")
             |> List.map
                 (\( key, value ) ->
                     Http.header
                         (InterpolatedField.interpolate variables key)
                         (InterpolatedField.interpolate variables value)
                 )
-            |> List.append authHeaders
-    , body = Fusion.Types.Empty
+    , body =
+        case request.body of
+            Fusion.Types.StringBody mime body ->
+                Fusion.Types.StringBody mime body
+
+            Fusion.Types.Empty ->
+                Fusion.Types.Empty
+
+            Fusion.Types.JsonBody body ->
+                Fusion.Types.StringBody "application/json" body
     , url = request.url |> InterpolatedField.interpolate variables
     , method =
         case request.method of

@@ -4,6 +4,7 @@ import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import Curl exposing (runCurl)
 import Dict
 import Expect exposing (Expectation)
+import Fusion.Types
 import InterpolatedField
 import Request exposing (Request)
 import Test exposing (..)
@@ -26,7 +27,7 @@ suite =
                             , ( "Referer", "http://www.wikipedia.org/" )
                             , ( "Connection", "keep-alive" )
                             ]
-                        , body = Request.Empty
+                        , body = Fusion.Types.Empty
                         , auth = Nothing
                         }
         , test "post" <|
@@ -41,13 +42,12 @@ suite =
                             , ( "Accept-Encoding", "gzip, deflate" )
                             , ( "Accept-Language", "en-US,en;q=0.8" )
                             , ( "User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36" )
-                            , ( "Content-Type", "application/x-www-form-urlencoded; charset=UTF-8" )
                             , ( "Accept", "*/*" )
                             , ( "Referer", "http://fiddle.jshell.net/_display/" )
                             , ( "X-Requested-With", "XMLHttpRequest" )
                             , ( "Connection", "keep-alive" )
                             ]
-                        , body = Request.StringBody "application/x-www-form-urlencoded; charset=UTF-8" "msg1=wow&msg2=such&msg3=data"
+                        , body = Fusion.Types.StringBody "application/x-www-form-urlencoded; charset=UTF-8" "msg1=wow&msg2=such&msg3=data"
                         , auth = Nothing
                         }
         , test "example from chrome dev tools copy" <|
@@ -82,36 +82,31 @@ suite =
                             , ( "sec-gpc", "1" )
                             , ( "user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36" )
                             ]
-                        , body = Request.Empty
+                        , body = Fusion.Types.Empty
                         , auth = Nothing
                         }
-        , test "JSON body" <|
+        , test "JSON body doesn't include duplicate content-type" <|
             \() ->
                 """'http://fiddle.jshell.net/echo/html/' -H 'Content-Type: application/json' --data '{"json": "data"}'"""
                     |> runCurl
                     |> expectRequest
                         { url = "http://fiddle.jshell.net/echo/html/"
                         , method = Request.POST
-                        , headers =
-                            [ ( "Content-Type", "application/json" )
-                            ]
-                        , body = Request.StringBody "application/json" """{"json": "data"}"""
+                        , headers = []
+                        , body = Fusion.Types.JsonBody """{"json": "data"}"""
                         , auth = Nothing
                         }
         , test "parses basic auth option from -u flag" <|
             \() ->
                 """https://api.mux.com/video/v1/assets/${ASSET_ID} \\
                      -X GET \\
-                     -H "Content-Type: application/json" \\
                      -u ${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}"""
                     |> runCurl
                     |> expectRequest
                         { url = "https://api.mux.com/video/v1/assets/${ASSET_ID}"
                         , method = Request.GET
-                        , headers =
-                            [ ( "Content-Type", "application/json" )
-                            ]
-                        , body = Request.Empty
+                        , headers = []
+                        , body = Fusion.Types.Empty
                         , auth =
                             Request.BasicAuth
                                 { username = "${MUX_TOKEN_ID}" |> InterpolatedField.fromString
@@ -126,7 +121,7 @@ expectRequest :
     { headers : List ( String, String )
     , method : Request.Method
     , url : String
-    , body : Request.Body
+    , body : Fusion.Types.RequestBody
     , auth : Maybe Request.Auth
     }
     -> MatchResult Request

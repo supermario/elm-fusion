@@ -5,7 +5,8 @@ import Cli.OptionsParser as OptionsParser exposing (OptionsParser)
 import Cli.OptionsParser.BuilderState
 import Cli.OptionsParser.MatchResult exposing (MatchResult(..))
 import CliArgsParser
-import Dict
+import Dict.CaseInsensitive as Dict exposing (Dict)
+import Fusion.Types
 import InterpolatedField
 import Maybe.Extra
 import Parser
@@ -52,13 +53,22 @@ removeLeadingSpace string =
 curl : OptionsParser Request Cli.OptionsParser.BuilderState.NoMoreOptions
 curl =
     OptionsParser.build
-        (\url data compressed header headers2 user1 user2 method1 method2 ->
+        (\url data_ dataRaw compressed header headers2 user1 user2 method1 method2 ->
             let
-                headers : Dict.Dict String String
-                headers =
+                data =
+                    data_ ++ dataRaw
+
+                fullHeaders : Dict String
+                fullHeaders =
                     (header ++ headers2)
                         |> List.map splitHeader
                         |> Dict.fromList
+
+                headers =
+                    fullHeaders
+                        |> Dict.filter (\key value -> key /= "content-type")
+
+                -- remove content-type
             in
             { url = url |> InterpolatedField.fromString
             , method =
@@ -92,21 +102,25 @@ curl =
                         )
             , body =
                 if data == [] then
-                    Request.Empty
+                    Fusion.Types.Empty
 
                 else
                     let
                         contentType : String
                         contentType =
-                            headers
-                                |> Dict.get "Content-Type"
-                                |> Maybe.withDefault "application/x-www-form-urlencoded"
+                            fullHeaders
+                                |> Dict.get "content-type"
+                                |> Maybe.withDefault "application/json"
                     in
-                    data
-                        |> String.join "\n"
-                        |> Request.StringBody
-                            -- TODO handle content-type's besides JSON
-                            contentType
+                    if contentType == "application/json" then
+                        data
+                            |> String.join "\n"
+                            |> Fusion.Types.JsonBody
+
+                    else
+                        data
+                            |> String.join "\n"
+                            |> Fusion.Types.StringBody contentType
             , timeout = Nothing
             , auth =
                 Maybe.Extra.or user2 user1
@@ -127,6 +141,7 @@ curl =
         )
         |> OptionsParser.with (Option.requiredPositionalArg "url")
         |> OptionsParser.with (Option.keywordArgList "data")
+        |> OptionsParser.with (Option.keywordArgList "data-raw")
         |> OptionsParser.with (Option.flag "compressed")
         |> OptionsParser.with (Option.keywordArgList "header")
         |> OptionsParser.with (Option.keywordArgList "H")
