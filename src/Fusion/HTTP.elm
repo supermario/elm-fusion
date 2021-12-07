@@ -198,7 +198,7 @@ bodyView currentRequest =
                 StringBody _ _ ->
                     []
     in
-    column [ width fill ]
+    column [ width fill, spacing 10 ]
         [ row []
             [ buttonHilightOn (currentRequest.body == Empty) [] (RequestBodyChanged Empty) "Empty"
             , buttonHilightOn
@@ -212,39 +212,63 @@ bodyView currentRequest =
                 []
                 (RequestBodyChanged (JsonBody currentBodyString))
                 "JSON"
+            , buttonHilightOn
+                (case currentRequest.body of
+                    StringBody _ _ ->
+                        True
+
+                    _ ->
+                        False
+                )
+                []
+                (RequestBodyChanged (StringBody "application/plain" currentBodyString))
+                "Other"
             ]
         , if currentRequest.body == Empty then
             Element.none
 
           else
-            Input.multiline
-                ((if List.isEmpty validationErrors then
-                    []
+            Element.column [ width fill, spacing 10 ]
+                [ case currentRequest.body of
+                    StringBody contentType body ->
+                        Input.text [ padding 5 ]
+                            { onChange = \newContentType -> RequestBodyChanged (StringBody newContentType body)
+                            , text = contentType
+                            , placeholder = Just (Input.placeholder [] <| text "")
+                            , label = Input.labelLeft [ paddingEach { top = 0, bottom = 0, left = 0, right = 10 } ] (text "Content-Type")
+                            }
 
-                  else
-                    [ Element.Border.color (Element.rgb255 255 0 0) ]
-                 )
-                    ++ [ padding 5
-                       ]
-                )
-                { onChange =
-                    \newBody ->
-                        RequestBodyChanged
-                            (case currentRequest.body of
-                                Empty ->
-                                    StringBody "" newBody
+                    _ ->
+                        Element.none
+                , Input.multiline
+                    ((if List.isEmpty validationErrors then
+                        []
 
-                                JsonBody _ ->
-                                    JsonBody newBody
+                      else
+                        [ Element.Border.color (Element.rgb255 255 0 0) ]
+                     )
+                        ++ [ padding 5
+                           ]
+                    )
+                    { onChange =
+                        \newBody ->
+                            RequestBodyChanged
+                                (case currentRequest.body of
+                                    Empty ->
+                                        StringBody "" newBody
 
-                                StringBody mimeType _ ->
-                                    StringBody mimeType newBody
-                            )
-                , text = requestBodyString currentRequest
-                , placeholder = Just (Input.placeholder [] <| text "request body")
-                , label = Input.labelHidden "request body input"
-                , spellcheck = False
-                }
+                                    JsonBody _ ->
+                                        JsonBody newBody
+
+                                    StringBody mimeType _ ->
+                                        StringBody mimeType newBody
+                                )
+                    , text = requestBodyString currentRequest
+                    , placeholder = Just (Input.placeholder [] <| text "request body")
+                    , label = Input.labelHidden "request body input"
+                    , spellcheck = False
+                    }
+                ]
         , if List.isEmpty validationErrors then
             Element.none
 
