@@ -4,6 +4,6 @@
     "postinstall": "elm-tooling install"
   },
   "devDependencies": {
-    "elm-tooling": "1.7.0"
+    "elm-tooling": "1.15.1"
   }
 }
